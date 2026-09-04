@@ -1,0 +1,25 @@
+@import "tailwindcss";
+
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  header, footer, nav, .print\:hidden {
+    display: none !important;
+  }
+  
+  .pdf-page-block {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 24px !important;
+  }
+  
+  .page-break-always {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+}
