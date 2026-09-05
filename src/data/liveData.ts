@@ -4,6 +4,9 @@ import alineFloralImg from '../assets/images/aline_floral_dress_1788513769331.jp
 import empireLaceImg from '../assets/images/empire_lace_dress_1788513783720.jpg';
 import orientalFusionImg from '../assets/images/oriental_fusion_dress_1788513802329.jpg';
 import pearlMajestyImg from '../assets/images/pearl_majesty_dress_1788513817581.jpg';
+import starlightCrystalImg from '../assets/images/starlight_crystal_dress_1788583338802.jpg';
+import vintageLaceImg from '../assets/images/vintage_lace_dress_1788583360798.jpg';
+import modernSheathImg from '../assets/images/modern_sheath_dress_1788583378485.jpg';
 
 export interface DressItem {
   id: string;
@@ -157,6 +160,57 @@ export const INITIAL_DRESSES: DressItem[] = [
     rating: 4.9,
     rentalCount: 16,
     description: '단정한 스퀘어 네크라인과 허리라인부터 풍성하게 펼쳐지는 은은한 펄 자수가 장엄한 분위기를 연출합니다.'
+  },
+  {
+    id: 'DR-007',
+    name: '스타라이트 크리스탈 일루전 벨라인 (Starlight Crystal)',
+    designer: 'Elena Blanc Couture (Milan)',
+    workshop: '상하이 1공방 (Shanghai Atelier)',
+    category: 'Ball Gown',
+    rentalPrice: 2200000,
+    deposit: 600000,
+    imageUrl: starlightCrystalImg,
+    tag: '2026 하이엔드 신작',
+    status: '가용',
+    silhouette: '일루전 벨라인',
+    fabric: '이탈리아 쉬머 튤, 스와로브스키 스타더스트 크리스탈',
+    rating: 5.0,
+    rentalCount: 8,
+    description: '별빛을 수놓은 듯한 일루전 네크라인과 은은하게 흩뿌려진 크리스탈 비딩, 웅장한 캐시드럴 트레인으로 극적인 아우라를 완성하는 최고급 본식 드레스입니다.'
+  },
+  {
+    id: 'DR-008',
+    name: '로맨틱 보헤미안 샹티이 레이스 에이라인 (Boho Chantilly)',
+    designer: 'Atelier Clara (Provence)',
+    workshop: '쑤저우 웨딩공방 (Suzhou Craft)',
+    category: 'A-Line',
+    rentalPrice: 1350000,
+    deposit: 350000,
+    imageUrl: vintageLaceImg,
+    tag: '가든 & 야외 웨딩',
+    status: '가용',
+    silhouette: '보헤미안 에이라인',
+    fabric: '프랑스 수제 샹티이 레이스, 실크 시폰',
+    rating: 4.8,
+    rentalCount: 15,
+    description: '우아한 비숍 슬리브와 입체 플로럴 자수, 바람에 하늘거리는 가벼운 트레인으로 자연스럽고 로맨틱한 무드를 선사하는 야외/채플 웨딩 추천 드레스입니다.'
+  },
+  {
+    id: 'DR-009',
+    name: '미니멀 시크 카울넥 크레이프 머메이드 (Minimalist Cowl)',
+    designer: 'Studio Min (New York & Seoul)',
+    workshop: '광저우 정밀공방 (Guangzhou)',
+    category: 'Mermaid',
+    rentalPrice: 1650000,
+    deposit: 450000,
+    imageUrl: modernSheathImg,
+    tag: '도회적 모더니즘',
+    status: '가용',
+    silhouette: '시스 머메이드',
+    fabric: '헤비 실크 크레이프 (Silk Crepe), 실크 새틴 안감',
+    rating: 4.9,
+    rentalCount: 12,
+    description: '절제된 실루엣과 드레이핑 카울넥 네크라인, 과감하고 우아한 백리스 디테일로 현대적인 신부의 세련미를 극대화한 건축미적 드레스입니다.'
   }
 ];
 
