@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Sparkles, Calendar, MapPin, Search, Filter, ShoppingBag, Heart, 
   Check, Star, Clock, ChevronRight, Store, ArrowRight, UserCheck, CheckCircle2,
-  CalendarCheck, X, CreditCard, Video
+  CalendarCheck, X, CreditCard, Video, CheckSquare
 } from 'lucide-react';
 import { DressItem, BookingItem } from '../../data/liveData';
 import heroShowroomImg from '../../assets/images/hero_wedding_showroom_1788513831356.jpg';
@@ -26,6 +26,9 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'catalog' | 'mywedding'>('catalog');
   const [previewDress, setPreviewDress] = useState<DressItem | null>(null);
+
+  // Batch Dress Selection State (Max 3 dresses for simultaneous fitting)
+  const [selectedBatchDressIds, setSelectedBatchDressIds] = useState<string[]>([]);
 
   // Booking Modal State
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
@@ -76,11 +79,41 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
     return matchesCategory && matchesSearch;
   });
 
+  const handleToggleBatchDress = (dressId: string) => {
+    setSelectedBatchDressIds(prev => {
+      if (prev.includes(dressId)) {
+        return prev.filter(id => id !== dressId);
+      }
+      if (prev.length >= 3) {
+        alert('피팅 예약은 한 번에 최대 3벌까지 선택 가능합니다. 기존 선택을 해제한 후 다시 선택해 주세요.');
+        return prev;
+      }
+      return [...prev, dressId];
+    });
+  };
+
+  const handleOpenBatchBooking = () => {
+    setBookingForm(prev => ({
+      ...prev,
+      selectedDresses: selectedBatchDressIds.length > 0 ? [...selectedBatchDressIds] : []
+    }));
+    setIsBookingModalOpen(true);
+  };
+
   const handleOpenBooking = (dress?: DressItem) => {
     if (dress) {
+      // If user has batch selection including this dress, keep batch; else prioritize this dress
+      const initialDresses = selectedBatchDressIds.includes(dress.id)
+        ? selectedBatchDressIds
+        : [dress.id];
       setBookingForm(prev => ({
         ...prev,
-        selectedDresses: [dress.id]
+        selectedDresses: initialDresses
+      }));
+    } else {
+      setBookingForm(prev => ({
+        ...prev,
+        selectedDresses: selectedBatchDressIds.length > 0 ? [...selectedBatchDressIds] : []
       }));
     }
     setIsBookingModalOpen(true);
@@ -90,13 +123,18 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
     setBookingForm(prev => {
       const exists = prev.selectedDresses.includes(id);
       if (exists) {
-        return { ...prev, selectedDresses: prev.selectedDresses.filter(d => d !== id) };
+        const next = prev.selectedDresses.filter(d => d !== id);
+        // Also sync batch state if user modifies inside modal
+        setSelectedBatchDressIds(next);
+        return { ...prev, selectedDresses: next };
       } else {
         if (prev.selectedDresses.length >= 3) {
           alert('피팅 예약 시 한 번에 최대 3벌까지 선택 가능합니다.');
           return prev;
         }
-        return { ...prev, selectedDresses: [...prev.selectedDresses, id] };
+        const next = [...prev.selectedDresses, id];
+        setSelectedBatchDressIds(next);
+        return { ...prev, selectedDresses: next };
       }
     });
   };
@@ -107,7 +145,12 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
       alert('신부님 성함과 연락처를 입력해 주세요.');
       return;
     }
+    if (bookingForm.selectedDresses.length === 0) {
+      alert('피팅 희망 드레스를 1개 이상 (최대 3개) 선택해 주세요.');
+      return;
+    }
     onBookFitting(bookingForm);
+    setSelectedBatchDressIds([]); // Reset batch selection upon successful booking
     setIsBookingModalOpen(false);
     setActiveTab('mywedding');
   };
@@ -184,8 +227,8 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
       </div>
 
       {/* Main View Mode Selector (Catalog vs My Wedding) */}
-      <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between border-b border-slate-200 pb-3 gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveTab('catalog')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
@@ -207,7 +250,28 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             }`}
           >
             <Heart className="w-3.5 h-3.5 text-rose-500" />
-            <span>나의 예약 및 대여 현황 ({bookings.length})</span>
+            <span>나의 예약 ({bookings.length})</span>
+          </button>
+
+          {/* 일괄 예약 메뉴 (최대 3벌) */}
+          <button
+            onClick={handleOpenBatchBooking}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs border ${
+              selectedBatchDressIds.length > 0
+                ? 'bg-purple-700 hover:bg-purple-800 text-white border-purple-800 ring-2 ring-purple-300'
+                : 'bg-white hover:bg-purple-50 text-purple-700 border-purple-200 hover:border-purple-300'
+            }`}
+            title="원하는 드레스를 최대 3벌 선택하여 한 번에 피팅 예약합니다"
+          >
+            <CheckSquare className="w-3.5 h-3.5" />
+            <span>일괄 피팅 예약</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
+              selectedBatchDressIds.length > 0
+                ? 'bg-white text-purple-900'
+                : 'bg-purple-100 text-purple-800'
+            }`}>
+              {selectedBatchDressIds.length}/3벌 선택
+            </span>
           </button>
 
           <button
@@ -215,7 +279,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:via-indigo-500 hover:to-emerald-500 text-white shadow-xs"
           >
             <CreditCard className="w-3.5 h-3.5" />
-            <span>간편결제 (알리페이 · 위챗페이)</span>
+            <span>간편 결제(알리 위챗)</span>
             <span className="bg-white/25 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">DEMO</span>
           </button>
 
@@ -224,15 +288,11 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white shadow-xs border border-slate-800"
           >
             <Video className="w-3.5 h-3.5 text-[#00f2fe]" />
-            <span>틱톡 라이브 (왕홍 연동)</span>
-            <span className="bg-gradient-to-r from-[#fe0979] to-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded font-bold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-              LIVE
-            </span>
+            <span>틱톡 LIVE</span>
           </button>
         </div>
 
-        <span className="text-xs text-slate-500 hidden sm:inline">
+        <span className="text-xs text-slate-500 hidden xl:inline">
           B2C 온라인 포털 (SCR-B2C-001 ~ 004)
         </span>
       </div>
@@ -274,93 +334,178 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
 
           {/* Dress Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredDresses.map((dress) => (
-              <div 
-                key={dress.id}
-                className="group bg-white rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all overflow-hidden flex flex-col"
-              >
-                {/* Dress Image with Badge */}
-                <div className="relative aspect-[3/4] bg-slate-100 overflow-hidden">
-                  <img 
-                    src={dress.imageUrl} 
-                    alt={dress.name} 
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                  />
-                  <div className="absolute top-3 left-3 flex flex-col gap-1">
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-900/80 text-white backdrop-blur-xs">
-                      {dress.tag}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/90 text-purple-700 backdrop-blur-xs">
-                      {dress.silhouette}
-                    </span>
-                  </div>
+            {filteredDresses.map((dress) => {
+              const isBatchSelected = selectedBatchDressIds.includes(dress.id);
+              const batchOrder = selectedBatchDressIds.indexOf(dress.id) + 1;
 
-                  <div className="absolute top-3 right-3">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      dress.status === '가용' 
-                        ? 'bg-emerald-500 text-white' 
-                        : dress.status === '피팅중' 
-                        ? 'bg-amber-500 text-white' 
-                        : 'bg-purple-600 text-white'
-                    }`}>
-                      {dress.status}
-                    </span>
-                  </div>
+              return (
+                <div 
+                  key={dress.id}
+                  className={`group bg-white rounded-2xl border transition-all overflow-hidden flex flex-col ${
+                    isBatchSelected
+                      ? 'border-purple-500 shadow-md ring-2 ring-purple-400/40 bg-purple-50/10'
+                      : 'border-slate-200 shadow-xs hover:shadow-md'
+                  }`}
+                >
+                  {/* Dress Image with Badge */}
+                  <div className="relative aspect-[3/4] bg-slate-100 overflow-hidden">
+                    <img 
+                      src={dress.imageUrl} 
+                      alt={dress.name} 
+                      referrerPolicy="no-referrer"
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    />
 
-                  <div className="absolute bottom-3 left-3 right-3 bg-slate-950/70 backdrop-blur-xs p-2.5 rounded-xl text-white flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-[10px] text-slate-300 block">권장 일일 대여가</span>
-                      <span className="font-bold text-amber-300 text-sm">
-                        ₩{dress.rentalPrice.toLocaleString()}
+                    {/* Quick Selection Checkbox for Batch Booking */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleBatchDress(dress.id);
+                      }}
+                      className={`absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-md backdrop-blur-md ${
+                        isBatchSelected
+                          ? 'bg-purple-600 text-white ring-2 ring-white shadow-purple-900/30'
+                          : 'bg-slate-900/80 hover:bg-slate-900 text-white'
+                      }`}
+                      title={isBatchSelected ? '선택 취소' : '일괄 피팅 예약 목록에 담기 (최대 3벌)'}
+                    >
+                      <CheckSquare className="w-3.5 h-3.5" />
+                      <span>{isBatchSelected ? `선택 (${batchOrder}/3)` : '피팅 담기'}</span>
+                    </button>
+
+                    <div className="absolute top-11 left-3 flex flex-col gap-1">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-900/80 text-white backdrop-blur-xs">
+                        {dress.tag}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/90 text-purple-700 backdrop-blur-xs">
+                        {dress.silhouette}
                       </span>
                     </div>
-                    <div className="text-right text-[11px] text-slate-300">
-                      <span>보증금: ₩{dress.deposit.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Dress Info Body */}
-                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
-                  <div>
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
-                      <span>{dress.designer}</span>
-                      <div className="flex items-center gap-1 text-amber-500 font-semibold">
-                        <Star className="w-3 h-3 fill-amber-500" />
-                        <span>{dress.rating}</span>
-                        <span className="text-slate-400">({dress.rentalCount}회 대여)</span>
+                    <div className="absolute top-3 right-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        dress.status === '가용' 
+                          ? 'bg-emerald-500 text-white' 
+                          : dress.status === '피팅중' 
+                          ? 'bg-amber-500 text-white' 
+                          : 'bg-purple-600 text-white'
+                      }`}>
+                        {dress.status}
+                      </span>
+                    </div>
+
+                    <div className="absolute bottom-3 left-3 right-3 bg-slate-950/70 backdrop-blur-xs p-2.5 rounded-xl text-white flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-300 block">권장 일일 대여가</span>
+                        <span className="font-bold text-amber-300 text-sm">
+                          ₩{dress.rentalPrice.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="text-right text-[11px] text-slate-300">
+                        <span>보증금: ₩{dress.deposit.toLocaleString()}</span>
                       </div>
                     </div>
-
-                    <h4 className="font-bold text-slate-900 text-sm group-hover:text-purple-700 transition line-clamp-1">
-                      {dress.name}
-                    </h4>
-
-                    <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">
-                      {dress.description}
-                    </p>
                   </div>
 
-                  <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
-                    <button
-                      onClick={() => setPreviewDress(dress)}
-                      className="flex-1 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition"
-                    >
-                      상세 정보
-                    </button>
-                    <button
-                      onClick={() => handleOpenBooking(dress)}
-                      className="flex-1 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs shadow-xs transition flex items-center justify-center gap-1"
-                    >
-                      <span>피팅 예약 (U11)</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                  {/* Dress Info Body */}
+                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-500 mb-1">
+                        <span>{dress.designer}</span>
+                        <div className="flex items-center gap-1 text-amber-500 font-semibold">
+                          <Star className="w-3 h-3 fill-amber-500" />
+                          <span>{dress.rating}</span>
+                          <span className="text-slate-400">({dress.rentalCount}회 대여)</span>
+                        </div>
+                      </div>
+
+                      <h4 className="font-bold text-slate-900 text-sm group-hover:text-purple-700 transition line-clamp-1">
+                        {dress.name}
+                      </h4>
+
+                      <p className="text-xs text-slate-600 mt-1 line-clamp-2 leading-relaxed">
+                        {dress.description}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleBatchDress(dress.id)}
+                        className={`py-2 px-2.5 rounded-lg text-xs font-bold transition flex items-center gap-1 shrink-0 ${
+                          isBatchSelected
+                            ? 'bg-purple-100 text-purple-800 border border-purple-300'
+                            : 'bg-purple-50/80 hover:bg-purple-100 text-purple-700 border border-purple-200'
+                        }`}
+                        title="최대 3벌 일괄 예약 목록에 추가/제외"
+                      >
+                        <CheckSquare className="w-3.5 h-3.5" />
+                        <span>{isBatchSelected ? '선택 해제' : '피팅 담기'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setPreviewDress(dress)}
+                        className="py-2 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs transition"
+                      >
+                        상세
+                      </button>
+                      <button
+                        onClick={() => handleOpenBooking(dress)}
+                        className="flex-1 py-2 rounded-lg bg-slate-900 hover:bg-black text-white font-semibold text-xs shadow-xs transition flex items-center justify-center gap-1"
+                      >
+                        <span>예약하기</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
+
+          {/* Sticky Floating Bar for Batch Fitting Reservation */}
+          {selectedBatchDressIds.length > 0 && (
+            <div className="sticky bottom-6 z-40 bg-slate-950/95 backdrop-blur-md text-white p-4 rounded-2xl shadow-2xl border border-purple-500/40 flex flex-wrap items-center justify-between gap-3 animate-in slide-in-from-bottom-5 duration-200">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center font-extrabold text-sm shadow-md">
+                  {selectedBatchDressIds.length}
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white flex items-center gap-2">
+                    <span>선택한 드레스 {selectedBatchDressIds.length}/3벌 일괄 피팅 대기</span>
+                    <span className="text-[10px] text-purple-300 bg-purple-900/80 px-2 py-0.5 rounded font-bold">
+                      최대 3벌 동시 예약
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 truncate max-w-[240px] sm:max-w-md">
+                    {selectedBatchDressIds
+                      .map(id => dresses.find(d => d.id === id)?.name)
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedBatchDressIds([])}
+                  className="px-3 py-1.5 text-xs text-slate-400 hover:text-white transition font-medium"
+                >
+                  선택 비우기
+                </button>
+                <button
+                  type="button"
+                  onClick={handleOpenBatchBooking}
+                  className="px-5 py-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-lg transition flex items-center gap-1.5"
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>선택 드레스 일괄 피팅 예약하기 ({selectedBatchDressIds.length}벌)</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -429,12 +574,22 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                     </div>
 
                     <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
-                      <div>
-                        <strong>선택 피팅 드레스: </strong>
-                        {booking.selectedDresses.map(id => {
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <strong className="text-slate-800">선택 피팅 드레스 ({booking.selectedDresses.length}벌): </strong>
+                        {booking.selectedDresses.map((id, idx) => {
                           const d = dresses.find(item => item.id === id);
-                          return d ? d.name : id;
-                        }).join(', ')}
+                          return (
+                            <span 
+                              key={id} 
+                              className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-purple-200 text-purple-900 text-[11px] font-medium shadow-2xs"
+                            >
+                              <span className="w-3.5 h-3.5 rounded-full bg-purple-600 text-white text-[9px] flex items-center justify-center font-bold">
+                                {idx + 1}
+                              </span>
+                              <span>{d ? d.name : id}</span>
+                            </span>
+                          );
+                        })}
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-purple-600 font-medium">대리점 OSM 실시간 연계 승인 완료</span>
@@ -626,13 +781,54 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
               </div>
 
               {/* Dress selection picker */}
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">
-                  시착 희망 드레스 선택 (최대 3벌, 현재 {bookingForm.selectedDresses.length}벌 선택됨)
-                </label>
-                <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto p-1">
-                  {dresses.slice(0, 6).map((d) => {
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-slate-700 block text-xs">
+                    시착 희망 드레스 선택 (최대 3벌 일괄 선택)
+                  </label>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                    bookingForm.selectedDresses.length === 3
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                      : bookingForm.selectedDresses.length > 0
+                      ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {bookingForm.selectedDresses.length} / 3벌 선택됨
+                  </span>
+                </div>
+
+                {/* Selected dresses chips */}
+                {bookingForm.selectedDresses.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 bg-purple-50/70 rounded-xl border border-purple-100">
+                    {bookingForm.selectedDresses.map((id, index) => {
+                      const d = dresses.find(item => item.id === id);
+                      return (
+                        <div 
+                          key={id} 
+                          className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-purple-200 text-xs text-purple-950 shadow-2xs"
+                        >
+                          <span className="w-4 h-4 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold">
+                            {index + 1}
+                          </span>
+                          <span className="font-medium max-w-[160px] truncate">{d ? d.name : id}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleDressSelection(id)}
+                            className="text-slate-400 hover:text-rose-500 ml-1 p-0.5"
+                            title="드레스 선택 해제"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-44 overflow-y-auto p-1.5 border border-slate-200 rounded-xl bg-slate-50/50">
+                  {dresses.filter(d => d.status !== '심사대기').map((d) => {
                     const isSelected = bookingForm.selectedDresses.includes(d.id);
+                    const selectedIndex = bookingForm.selectedDresses.indexOf(d.id);
                     return (
                       <button
                         type="button"
@@ -640,15 +836,29 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                         onClick={() => handleToggleDressSelection(d.id)}
                         className={`p-2 rounded-lg border text-left transition flex items-center justify-between ${
                           isSelected 
-                            ? 'bg-purple-100 border-purple-400 text-purple-900 font-bold' 
-                            : 'bg-slate-50 border-slate-200 hover:bg-slate-100 text-slate-700'
+                            ? 'bg-purple-100 border-purple-400 text-purple-900 font-bold shadow-2xs' 
+                            : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-700'
                         }`}
                       >
-                        <div className="truncate pr-1">
-                          <span className="block text-[11px] truncate">{d.name}</span>
-                          <span className="text-[10px] text-slate-400">{d.category}</span>
+                        <div className="flex items-center gap-2 truncate pr-1">
+                          <img 
+                            src={d.imageUrl} 
+                            alt={d.name} 
+                            className="w-8 h-10 object-cover rounded shrink-0 border border-slate-200"
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="truncate">
+                            <span className="block text-[11px] truncate leading-tight">{d.name}</span>
+                            <span className="text-[10px] text-slate-500 block">{d.silhouette} · ₩{d.rentalPrice.toLocaleString()}</span>
+                          </div>
                         </div>
-                        {isSelected && <Check className="w-3.5 h-3.5 text-purple-700 shrink-0" />}
+                        {isSelected ? (
+                          <span className="w-5 h-5 rounded-full bg-purple-600 text-white flex items-center justify-center text-[10px] font-bold shrink-0">
+                            {selectedIndex + 1}
+                          </span>
+                        ) : (
+                          <span className="w-4 h-4 rounded-full border border-slate-300 shrink-0" />
+                        )}
                       </button>
                     );
                   })}
