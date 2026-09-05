@@ -1,5 +1,38 @@
 @import "tailwindcss";
 
+/* 링크 및 버튼, 대화형 메뉴 요소 호버 시 손가락 커서(pointer) 일괄 적용 */
+button:not(:disabled),
+a,
+[role="button"]:not([aria-disabled="true"]),
+[role="tab"]:not([aria-disabled="true"]),
+[role="menuitem"],
+[role="link"],
+select,
+summary,
+input[type="button"],
+input[type="submit"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+.cursor-pointer {
+  cursor: pointer !important;
+}
+
+button:disabled,
+[aria-disabled="true"],
+.cursor-not-allowed {
+  cursor: not-allowed !important;
+}
+
+/* 네비게이션 바 및 헤더 메뉴 링크 손가락 커서 보장 */
+header button,
+header a,
+nav button,
+nav a,
+[data-clickable="true"] {
+  cursor: pointer !important;
+}
+
 @media print {
   body {
     background-color: #ffffff !important;
