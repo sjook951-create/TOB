@@ -1,6 +1,7 @@
 import React from 'react';
 import { FileText, Printer, CheckSquare, Search, Layers, Compass, GitCommit, LayoutGrid, Globe, Sparkles } from 'lucide-react';
 import { PortalType } from '../types';
+import { UserMenu } from './auth/UserMenu';
 
 interface HeaderProps {
   currentView: 'live' | 'wireframe' | 'table' | 'process' | 'sitemap' | 'report';
@@ -94,8 +95,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* View Mode Switcher Buttons */}
-        <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs self-start md:self-auto overflow-x-auto max-w-full">
+        {/* View Mode Switcher Buttons & User Auth Menu */}
+        <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs self-start md:self-auto overflow-x-auto max-w-full">
           <button
             onClick={() => setCurrentView('live')}
             className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg font-bold transition whitespace-nowrap ${
@@ -168,7 +170,13 @@ export const Header: React.FC<HeaderProps> = ({
             <span>보고서 & PDF</span>
           </button>
         </div>
+
+        <div className="h-6 w-px bg-slate-200 hidden sm:block" />
+
+        {/* 우측 상단 회원가입 및 로그인 메뉴 */}
+        <UserMenu />
       </div>
+    </div>
 
       {currentView !== 'live' && (
         <div className="px-4 sm:px-6 py-2 bg-slate-50 border-t border-slate-200 flex justify-end">

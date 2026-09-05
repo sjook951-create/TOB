@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Sparkles, Calendar, MapPin, Search, Filter, ShoppingBag, Heart, 
   Check, Star, Clock, ChevronRight, Store, ArrowRight, UserCheck, CheckCircle2,
-  CalendarCheck, X, CreditCard, Video, CheckSquare
+  CalendarCheck, X, CreditCard, Video, CheckSquare, Database
 } from 'lucide-react';
 import { DressItem, BookingItem } from '../../data/liveData';
 import heroShowroomImg from '../../assets/images/hero_wedding_showroom_1788513831356.jpg';
@@ -515,9 +515,15 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
           <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
             <div className="flex items-center justify-between pb-4 border-b border-slate-200">
               <div>
-                <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
-                  MY WEDDING DASHBOARD
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded">
+                    MY WEDDING DASHBOARD
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <Database className="w-3 h-3 text-emerald-600" />
+                    <span>Cloud SQL (PostgreSQL) 실시간 동기화</span>
+                  </span>
+                </div>
                 <h3 className="text-base font-bold text-slate-900 mt-1">
                   나의 피팅 예약 및 대여 계약 현황 (SCR-B2C-004)
                 </h3>

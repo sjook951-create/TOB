@@ -7,6 +7,8 @@ import { ProcessDiagramView } from './components/ProcessDiagramView';
 import { SitemapView } from './components/SitemapView';
 import { DocumentReportView } from './components/DocumentReportView';
 import { LivePlatform } from './components/live/LivePlatform';
+import { AuthProvider } from './context/AuthContext';
+import { AuthModal } from './components/auth/AuthModal';
 import { SCREEN_SPECS } from './data/screenSpecsData';
 import { PortalType } from './types';
 
@@ -49,9 +51,10 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 flex flex-col font-sans selection:bg-purple-200 selection:text-purple-900">
-      {/* Top Application Header */}
-      <Header
+    <AuthProvider>
+      <div className="min-h-screen bg-slate-100 flex flex-col font-sans selection:bg-purple-200 selection:text-purple-900">
+        {/* Top Application Header */}
+        <Header
         currentView={currentView}
         setCurrentView={setCurrentView}
         selectedPortal={selectedPortal}
@@ -131,6 +134,10 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Global Authentication Modal (휴대전화 번호 인증 & 소셜 계정 연동) */}
+      <AuthModal />
     </div>
-  );
+  </AuthProvider>
+);
 }
