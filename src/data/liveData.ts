@@ -29,6 +29,16 @@ import runwayHauteCoutureFusionImg from '../assets/images/runway_haute_couture_f
 import dianaRoyalCathedralImg from '../assets/images/diana_royal_cathedral_ballgown.jpg';
 import audreyClassic1950sImg from '../assets/images/audrey_classic_1950s_dress.jpg';
 import edwardianSilkHeritageImg from '../assets/images/edwardian_silk_heritage_dress.jpg';
+import whiteCathedralLaceImg from '../assets/images/white_cathedral_lace_dress.jpg';
+import eleganceAlineChiffonImg from '../assets/images/elegance_aline_chiffon_dress.jpg';
+import flowingSilkOrganzaImg from '../assets/images/flowing_silk_organza_dress.jpg';
+import hauteCoutureLuxuryImg from '../assets/images/haute_couture_luxury_dress.jpg';
+import caucasianModelPureWhiteImg from '../assets/images/caucasian_model_pure_white_dress.jpg';
+import traditionalRoyalTrainImg from '../assets/images/traditional_royal_train_dress.jpg';
+import archWindowSilhouetteImg from '../assets/images/arch_window_silhouette_dress.jpg';
+import coutureRibbonBowImg from '../assets/images/couture_ribbon_bow_dress.jpg';
+import goldenHourChiffonImg from '../assets/images/golden_hour_chiffon_dress.jpg';
+import botanicalRomanceLaceImg from '../assets/images/botanical_romance_lace_dress.jpg';
 
 export interface DressItem {
   id: string;
@@ -607,6 +617,176 @@ export const INITIAL_DRESSES: DressItem[] = [
     rating: 5.0,
     rentalCount: 6,
     description: '1903년 에드워디안 시대의 기품을 고스란히 담아낸 최고급 실크 가운으로, 고귀한 하이넥 칼라와 섬세한 바텐버그 레이스 턱시도 주름, 우아하게 흐르는 실크 크레이프 실루엣이 성스러운 대성당 예식에 특별한 아우라를 부여합니다.'
+  },
+  {
+    id: 'DR-032',
+    name: '베르사유 캐시드럴 샹티이 레이스 (Versailles Cathedral Chantilly Lace)',
+    designer: 'Atelier Marie-Antoinette (Paris)',
+    workshop: '상하이 1공방 (Shanghai Atelier)',
+    category: 'Ball Gown',
+    rentalPrice: 2400000,
+    deposit: 700000,
+    imageUrl: whiteCathedralLaceImg,
+    tag: '2026 파리 꾸뛰르 / 퓨어 화이트',
+    status: '가용',
+    silhouette: '캐시드럴 트레인 볼가운',
+    fabric: '프렌치 샹티이 코드 레이스, 퓨어 화이트 튤, 캐시드럴 롱 베일, 스와로브스키 비딩',
+    rating: 5.0,
+    rentalCount: 7,
+    description: '유럽계 모델이 착용한 웅장한 실루엣의 퓨어 화이트 캐시드럴 가운으로, 롱 베일과 정교한 프랑스 샹티이 레이스가 바닥까지 웅장하게 펼쳐지는 클래식 대성당 예식의 정점입니다.'
+  },
+  {
+    id: 'DR-033',
+    name: '모나코 로열 엘레강스 시폰 A라인 (Monaco Royal Elegance Chiffon A-Line)',
+    designer: 'Maison Blanche Riviera (Monaco)',
+    workshop: '쑤저우 웨딩공방 (Suzhou Craft)',
+    category: 'A-Line',
+    rentalPrice: 1850000,
+    deposit: 500000,
+    imageUrl: eleganceAlineChiffonImg,
+    tag: '리비에라 브라이덜 / 스노우 화이트',
+    status: '가용',
+    silhouette: '소프트 로맨틱 A라인',
+    fabric: '이탈리안 실크 시폰, 핸드메이드 보디스 자수, 드레이핑 풀 스커트',
+    rating: 4.9,
+    rentalCount: 11,
+    description: '유럽 모델의 우아한 비율을 돋보이게 하는 스노우 화이트 A라인 드레스로, 자연스럽게 바닥까지 흐르는 실크 시폰 드레이프와 섬세한 허리 절개선이 서정적이고 맑은 분위기를 연출합니다.'
+  },
+  {
+    id: 'DR-034',
+    name: '비엔나 플로잉 오간자 머메이드 (Vienna Flowing Silk Organza Mermaid)',
+    designer: 'Schönbrunn Atelier (Vienna)',
+    workshop: '상하이 1공방 (Shanghai Atelier)',
+    category: 'Mermaid',
+    rentalPrice: 2100000,
+    deposit: 600000,
+    imageUrl: flowingSilkOrganzaImg,
+    tag: '오스트리아 아카이브 / 브릴리언트 화이트',
+    status: '가용',
+    silhouette: '플로잉 슬림 머메이드',
+    fabric: '고밀도 브릴리언트 화이트 실크 오간자, 3D 플로럴 페탈, 소프트 튤 플레어',
+    rating: 5.0,
+    rentalCount: 8,
+    description: '유럽계 신부의 실루엣을 따라 발끝까지 완벽하게 이어지는 플로잉 머메이드 드레스로, 무릎 아래로 가볍고 우아하게 퍼지는 오간자 러플이 걸음마다 환상적인 율동감을 선사합니다.'
+  },
+  {
+    id: 'DR-035',
+    name: '밀라노 오트 쿠튀르 룩소르 가운 (Milano Haute Couture Luxor Gown)',
+    designer: 'Galleria Milano Couture (Milan)',
+    workshop: '광저우 정밀공방 (Guangzhou)',
+    category: 'Mermaid',
+    rentalPrice: 2600000,
+    deposit: 750000,
+    imageUrl: hauteCoutureLuxuryImg,
+    tag: '밀라노 패션위크 / 퓨어 밀크 화이트',
+    status: '가용',
+    silhouette: '구조적 하이엔드 시스 머메이드',
+    fabric: '밀라노 헤비 실크 크레이프, 백리스 스트랩 디테일, 미니멀 트레인',
+    rating: 4.9,
+    rentalCount: 6,
+    description: '유럽 모델의 감각적인 보디라인을 극대화한 최고급 밀라노 오트 쿠튀르 드레스로, 과장 없는 정제된 퓨어 화이트 텍스처와 바닥까지 흐르는 미니멀 트레인이 독보적인 모던함을 자아냅니다.'
+  },
+  {
+    id: 'DR-036',
+    name: '스칸디나비아 노르딕 퓨어 레이스 가운 (Scandinavian Nordic Pure Lace Gown)',
+    designer: 'Nordic Bridal Atelier (Stockholm)',
+    workshop: '상하이 1공방 (Shanghai Atelier)',
+    category: 'A-Line',
+    rentalPrice: 2250000,
+    deposit: 650000,
+    imageUrl: caucasianModelPureWhiteImg,
+    tag: '노르딕 하모니 / 브라이트 화이트',
+    status: '가용',
+    silhouette: '클래식 풀 랭스 A라인',
+    fabric: '스웨디시 코튼 레이스, 퓨어 브라이트 튤, 일루전 네크라인, 새틴 언더레이',
+    rating: 5.0,
+    rentalCount: 14,
+    description: '유럽계 모델이 서 있는 전신 실루엣이 돋보이는 브라이트 화이트 A라인 가운으로, 가슴부터 스커트 밑단 끝까지 흐르는 촘촘한 레이스 패턴과 맑고 청아한 채광이 순백의 아름다움을 완성합니다.'
+  },
+  {
+    id: 'DR-037',
+    name: '윈저 로열 세러머니 트레인 가운 (Windsor Royal Ceremony Train Gown)',
+    designer: 'Kensington Heritage House (London)',
+    workshop: '쑤저우 웨딩공방 (Suzhou Craft)',
+    category: 'Ball Gown',
+    rentalPrice: 2900000,
+    deposit: 850000,
+    imageUrl: traditionalRoyalTrainImg,
+    tag: '영국 왕실 오마주 / 로열 브라이덜',
+    status: '가용',
+    silhouette: '로열 롱 트레인 볼가운',
+    fabric: '잉글리시 실크 브로케이드, 스노우 화이트 레이스, 티아라 세트 롱 트레인',
+    rating: 5.0,
+    rentalCount: 10,
+    description: '전통 유럽 황실의 기품을 완벽히 재현한 순백의 로열 볼가운으로, 티아라와 부케를 든 신부의 발끝과 긴 트레인이 완벽히 펼쳐져 웅장한 호텔 예식 및 대성당 버진로드를 압도합니다.'
+  },
+  {
+    id: 'DR-038',
+    name: '피렌체 아치 윈도우 슬림 엠파이어 (Firenze Arch Window Slim Empire)',
+    designer: 'Palazzo Vecchio Bridal (Florence)',
+    workshop: '광저우 정밀공방 (Guangzhou)',
+    category: 'Empire',
+    rentalPrice: 1950000,
+    deposit: 550000,
+    imageUrl: archWindowSilhouetteImg,
+    tag: '토스카나 빈티지 / 아이보리 화이트',
+    status: '가용',
+    silhouette: '슬림 하이웨이스트 엠파이어',
+    fabric: '이탈리안 러스터 실크, 핸드 플리츠 보디스, 자연스러운 바닥 드레이프',
+    rating: 4.8,
+    rentalCount: 12,
+    description: '고풍스러운 아치 창가에 선 유럽 모델의 실루엣이 감성적인 엠파이어 가운으로, 하이웨이스트 라인 아래로 부드럽게 떨어지는 실크 패브릭이 키가 더욱 커 보이며 성스러운 분위기를 선사합니다.'
+  },
+  {
+    id: 'DR-039',
+    name: '마드리드 아틀리에 리본 백리스 가운 (Madrid Atelier Ribbon Backless Gown)',
+    designer: 'Atelier Real de Madrid (Spain)',
+    workshop: '상하이 1공방 (Shanghai Atelier)',
+    category: 'A-Line',
+    rentalPrice: 2350000,
+    deposit: 700000,
+    imageUrl: coutureRibbonBowImg,
+    tag: '스패니시 디자이너 컬렉션 / 펄 화이트',
+    status: '가용',
+    silhouette: '모던 백리본 A라인',
+    fabric: '스페인산 하이엔드 실크 미카도, 수작업 오리가미 리본 보우, 스노우 튤 헴라인',
+    rating: 5.0,
+    rentalCount: 9,
+    description: '스페인 마드리드 패션 아틀리에 컬렉션을 장식한 마스터피스로, 단정하고 절제된 앞모습과 대비되는 극적인 백 리본 보우 및 전신 A라인 실루엣이 현대적이고 독창적인 신부미를 구현합니다.'
+  },
+  {
+    id: 'DR-040',
+    name: '프로방스 골든 선셋 플로럴 시폰 (Provence Golden Sunset Floral Chiffon)',
+    designer: 'Maison de Provence (France)',
+    workshop: '쑤저우 웨딩공방 (Suzhou Craft)',
+    category: 'A-Line',
+    rentalPrice: 1700000,
+    deposit: 450000,
+    imageUrl: goldenHourChiffonImg,
+    tag: '가든 & 야외 웨딩 / 웜 화이트',
+    status: '가용',
+    silhouette: '내추럴 플로잉 A라인',
+    fabric: '프렌치 라이트 시폰, 보태니컬 플로럴 아플리케, 소프트 트레인',
+    rating: 4.9,
+    rentalCount: 15,
+    description: '오후 햇살 아래 자연스러운 전신 라인을 완성하는 웜 화이트 시폰 가운으로, 햇빛을 받을 때마다 은은하게 투과되는 레이어드 스커트가 야외 가든 웨딩과 채플 웨딩에 최상의 화사함을 선사합니다.'
+  },
+  {
+    id: 'DR-041',
+    name: '바이에른 로맨틱 보태니컬 레이스 (Bavarian Romantic Botanical Lace)',
+    designer: 'Munich Bridal Couture (Germany)',
+    workshop: '상하이 1공방 (Shanghai Atelier)',
+    category: 'Ball Gown',
+    rentalPrice: 2050000,
+    deposit: 600000,
+    imageUrl: botanicalRomanceLaceImg,
+    tag: '보태니컬 클래식 / 퓨어 화이트',
+    status: '가용',
+    silhouette: '로맨틱 클래식 볼가운',
+    fabric: '독일산 프리미엄 자수 레이스, 스노우 화이트 페티코트, 하트 네크라인',
+    rating: 5.0,
+    rentalCount: 13,
+    description: '유럽 모델의 단아한 매력과 풍성한 스커트 라인이 조화를 이루는 퓨어 화이트 볼가운으로, 부케와 대조되는 깨끗한 순백색 자수와 바닥까지 풍성하게 퍼지는 볼륨이 신부를 동화 속 주인공으로 만들어 줍니다.'
   }
 ];
 
