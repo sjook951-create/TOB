@@ -222,7 +222,7 @@ export const DocumentReportView: React.FC = () => {
             <div className="pt-6 border-t border-slate-300 max-w-md mx-auto text-xs text-slate-700 space-y-1">
               <div className="font-bold text-slate-900 text-sm">友霓网络科技（上海）有限公司</div>
               <div>UNINET TECHNOLOGY (SHANGHAI) CO., LTD.</div>
-              <div className="font-mono text-slate-500 pt-1">발행일자: 2026. 05. 20 · 작성자: 김창해 실장</div>
+              <div className="font-mono text-slate-500 pt-1">발행일자: 2026. 05. 20 · 설계자: 편민철 실장</div>
             </div>
           </div>
 

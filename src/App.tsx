@@ -123,7 +123,7 @@ export default function App() {
             <span>· 友霓网络科技(上海)有限公司 UNINET TECHNOLOGY</span>
           </div>
           <div className="flex items-center gap-3">
-            <span>설계자: 김창해</span>
+            <span>설계자: 편민철</span>
             <span>·</span>
             <span>버전 1.0 (2026.05.20)</span>
             <span>·</span>

@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { 
   Sparkles, Calendar, MapPin, Search, Filter, ShoppingBag, Heart, 
   Check, Star, Clock, ChevronRight, Store, ArrowRight, UserCheck, CheckCircle2,
-  CalendarCheck, X
+  CalendarCheck, X, CreditCard, Video
 } from 'lucide-react';
 import { DressItem, BookingItem } from '../../data/liveData';
 import heroShowroomImg from '../../assets/images/hero_wedding_showroom_1788513831356.jpg';
+import { PaymentModal } from './PaymentModal';
+import { TiktokWanghongModal } from './TiktokWanghongModal';
 
 interface B2CConsumerPortalProps {
   dresses: DressItem[];
@@ -27,6 +29,14 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
 
   // Booking Modal State
   const [isBookingModalOpen, setIsBookingModalOpen] = useState<boolean>(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
+  const [isTiktokModalOpen, setIsTiktokModalOpen] = useState<boolean>(false);
+  const [targetBookingIdForPayment, setTargetBookingIdForPayment] = useState<string | undefined>(undefined);
+
+  const handleOpenPaymentModal = (bookingId?: string) => {
+    setTargetBookingIdForPayment(bookingId);
+    setIsPaymentModalOpen(true);
+  };
   const [bookingForm, setBookingForm] = useState({
     customerName: '',
     phone: '',
@@ -198,6 +208,27 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
           >
             <Heart className="w-3.5 h-3.5 text-rose-500" />
             <span>나의 예약 및 대여 현황 ({bookings.length})</span>
+          </button>
+
+          <button
+            onClick={() => handleOpenPaymentModal()}
+            className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:via-indigo-500 hover:to-emerald-500 text-white shadow-xs"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>간편결제 (알리페이 · 위챗페이)</span>
+            <span className="bg-white/25 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">DEMO</span>
+          </button>
+
+          <button
+            onClick={() => setIsTiktokModalOpen(true)}
+            className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white shadow-xs border border-slate-800"
+          >
+            <Video className="w-3.5 h-3.5 text-[#00f2fe]" />
+            <span>틱톡 라이브 (왕홍 연동)</span>
+            <span className="bg-gradient-to-r from-[#fe0979] to-rose-500 text-white text-[10px] px-1.5 py-0.2 rounded font-bold flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              LIVE
+            </span>
           </button>
         </div>
 
@@ -397,7 +428,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                       </div>
                     </div>
 
-                    <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between text-xs text-slate-600">
+                    <div className="pt-2 border-t border-slate-200/80 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600">
                       <div>
                         <strong>선택 피팅 드레스: </strong>
                         {booking.selectedDresses.map(id => {
@@ -405,7 +436,17 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                           return d ? d.name : id;
                         }).join(', ')}
                       </div>
-                      <span className="text-purple-600 font-medium">대리점 OSM 실시간 연계 승인 완료</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-purple-600 font-medium">대리점 OSM 실시간 연계 승인 완료</span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPaymentModal(booking.id)}
+                          className="px-2.5 py-1 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-xs"
+                        >
+                          <CreditCard className="w-3 h-3" />
+                          <span>보증금 결제 (알리/위챗)</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -645,6 +686,19 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
           </div>
         </div>
       )}
+      {/* ALIPAY & WECHAT PAY DEMO MODAL */}
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        bookings={bookings}
+        defaultBookingId={targetBookingIdForPayment}
+      />
+
+      {/* TIKTOK WANGHONG LIVE MODAL */}
+      <TiktokWanghongModal
+        isOpen={isTiktokModalOpen}
+        onClose={() => setIsTiktokModalOpen(false)}
+      />
     </div>
   );
 };

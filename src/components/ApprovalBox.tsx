@@ -16,7 +16,7 @@ export const ApprovalBox: React.FC = () => {
             웹사이트 구성 화면 분석 및 설계 검토 결재란
           </h2>
           <p className="text-xs text-slate-500">
-            문서 작성자: 김창해 (友霓网络科技) · 작성일자: 2026. 05. 20
+            문서 설계자: 편민철 (友霓网络科技) · 작성일자: 2026. 05. 20
           </p>
         </div>
 
@@ -52,10 +52,10 @@ export const ApprovalBox: React.FC = () => {
               </tr>
               <tr>
                 <td className="border border-slate-300 py-2 font-medium bg-slate-100">실 장</td>
-                <td className="border border-slate-300 py-2 text-slate-600">김창해</td>
+                <td className="border border-slate-300 py-2 text-slate-600">편민철</td>
                 <td className="border border-slate-300 py-2 text-emerald-600 font-medium italic flex items-center justify-center gap-1">
                   <PenTool className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>(작성/인)</span>
+                  <span>(설계/인)</span>
                 </td>
                 <td className="border border-slate-300 py-2 text-slate-500 text-[11px]">2026.05.20</td>
               </tr>
