@@ -8,6 +8,7 @@ import { DressItem, BookingItem } from '../../data/liveData';
 import heroShowroomImg from '../../assets/images/hero_wedding_showroom_1788513831356.jpg';
 import { PaymentModal } from './PaymentModal';
 import { TiktokWanghongModal } from './TiktokWanghongModal';
+import { UserMenu } from '../auth/UserMenu';
 
 interface B2CConsumerPortalProps {
   dresses: DressItem[];
@@ -238,7 +239,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>드레스 컬렉션 둘러보기 ({filteredDresses.length})</span>
+            <span>드레스 둘러보기 ({filteredDresses.length})</span>
           </button>
 
           <button
@@ -253,7 +254,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             <span>나의 예약 ({bookings.length})</span>
           </button>
 
-          {/* 일괄 예약 메뉴 (최대 3벌) */}
+          {/* 피팅 예약 메뉴 (최대 3벌) */}
           <button
             onClick={handleOpenBatchBooking}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs border ${
@@ -264,7 +265,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             title="원하는 드레스를 최대 3벌 선택하여 한 번에 피팅 예약합니다"
           >
             <CheckSquare className="w-3.5 h-3.5" />
-            <span>일괄 피팅 예약</span>
+            <span>피팅 예약</span>
             <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
               selectedBatchDressIds.length > 0
                 ? 'bg-white text-purple-900'
@@ -279,7 +280,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:via-indigo-500 hover:to-emerald-500 text-white shadow-xs"
           >
             <CreditCard className="w-3.5 h-3.5" />
-            <span>간편 결제(알리 위챗)</span>
+            <span>알리 위챗 결제</span>
             <span className="bg-white/25 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">DEMO</span>
           </button>
 
@@ -292,9 +293,10 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
           </button>
         </div>
 
-        <span className="text-xs text-slate-500 hidden xl:inline">
-          B2C 온라인 포털 (SCR-B2C-001 ~ 004)
-        </span>
+        {/* 로그인, 회원가입 메뉴 (우측 삭제된 라벨 위치로 이동) */}
+        <div className="flex items-center">
+          <UserMenu />
+        </div>
       </div>
 
       {/* TAB 1: DRESS CATALOG */}
@@ -473,7 +475,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                 </div>
                 <div>
                   <div className="text-xs font-bold text-white flex items-center gap-2">
-                    <span>선택한 드레스 {selectedBatchDressIds.length}/3벌 일괄 피팅 대기</span>
+                    <span>선택한 드레스 {selectedBatchDressIds.length}/3벌 피팅 대기</span>
                     <span className="text-[10px] text-purple-300 bg-purple-900/80 px-2 py-0.5 rounded font-bold">
                       최대 3벌 동시 예약
                     </span>
@@ -501,7 +503,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                   className="px-5 py-2 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white rounded-xl text-xs font-bold shadow-lg transition flex items-center gap-1.5"
                 >
                   <Calendar className="w-4 h-4" />
-                  <span>선택 드레스 일괄 피팅 예약하기 ({selectedBatchDressIds.length}벌)</span>
+                  <span>선택 드레스 피팅 예약하기 ({selectedBatchDressIds.length}벌)</span>
                 </button>
               </div>
             </div>

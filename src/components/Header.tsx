@@ -1,7 +1,6 @@
 import React from 'react';
 import { FileText, Printer, CheckSquare, Search, Layers, Compass, GitCommit, LayoutGrid, Globe, Sparkles } from 'lucide-react';
 import { PortalType } from '../types';
-import { UserMenu } from './auth/UserMenu';
 
 interface HeaderProps {
   currentView: 'live' | 'wireframe' | 'table' | 'process' | 'sitemap' | 'report';
@@ -170,11 +169,6 @@ export const Header: React.FC<HeaderProps> = ({
             <span>보고서 & PDF</span>
           </button>
         </div>
-
-        <div className="h-6 w-px bg-slate-200 hidden sm:block" />
-
-        {/* 우측 상단 회원가입 및 로그인 메뉴 */}
-        <UserMenu />
       </div>
     </div>
 

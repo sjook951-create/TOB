@@ -39,7 +39,7 @@ async function startServer() {
 
     res.json({
       success: true,
-      message: `[TOBMALL] 인증번호 [${otpCode}]가 ${cleanPhone} 번호로 발송되었습니다. (유효시간: 3분)`,
+      message: `[TOBMALL 중국 항저우(杭州) 센터] 인증번호 [${otpCode}]가 ${cleanPhone} 번호로 발송되었습니다. (유효시간: 3분)`,
       phone: cleanPhone,
       testCode: otpCode, // Provided for instant testing preview
       expiresAt,
@@ -72,7 +72,7 @@ async function startServer() {
 
     res.json({
       success: true,
-      message: "휴대전화 번호 인증이 성공적으로 완료되었습니다.",
+      message: "중국 항저우 기준 휴대전화 번호 본인인증이 성공적으로 완료되었습니다.",
       verified: true,
       phone: cleanPhone,
     });

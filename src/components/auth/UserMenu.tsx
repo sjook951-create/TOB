@@ -58,14 +58,14 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'compact' }) => {
       <div className="flex items-center gap-1.5">
         <button
           onClick={() => openAuthModal('login')}
-          className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition"
+          className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-slate-700 hover:text-purple-700 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition shadow-xs"
         >
           <LogIn className="w-3.5 h-3.5 text-slate-500" />
           <span>로그인</span>
         </button>
         <button
           onClick={() => openAuthModal('signup')}
-          className="flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-lg shadow-2xs transition"
+          className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition"
         >
           <UserPlus className="w-3.5 h-3.5" />
           <span>회원가입</span>
@@ -78,7 +78,7 @@ export const UserMenu: React.FC<UserMenuProps> = ({ variant = 'compact' }) => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setDropdownOpen(!dropdownOpen)}
-        className="flex items-center gap-2 px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition shadow-2xs text-left"
+        className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl transition shadow-xs text-left"
       >
         <div className="w-6 h-6 rounded-full bg-purple-100 border border-purple-300 flex items-center justify-center text-purple-700 overflow-hidden shrink-0">
           {user.photoUrl ? (

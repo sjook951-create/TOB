@@ -22,9 +22,9 @@ export const AuthModal: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>(authModalMode);
   
-  // Country and Phone
-  const [countryCode, setCountryCode] = useState('+82');
-  const [phoneNumber, setPhoneNumber] = useState('010-9876-5432');
+  // Country and Phone (중국 항저우 기준 기본 설정)
+  const [countryCode, setCountryCode] = useState('+86');
+  const [phoneNumber, setPhoneNumber] = useState('138-5718-8888');
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [isPhoneVerified, setIsPhoneVerified] = useState(false);
@@ -85,7 +85,7 @@ export const AuthModal: React.FC = () => {
       setIsPhoneVerified(false);
       setSuccessMessage(result.message);
       if (result.testCode) {
-        setTestOtpNotice(`[SMS 시뮬레이션] 인증번호는 [${result.testCode}] 입니다.`);
+        setTestOtpNotice(`[중국 항저우 SMS 시뮬레이션] 인증번호는 [${result.testCode}] 입니다.`);
         // auto-fill suggestion for quick demo
         setOtpCode(result.testCode);
       }
@@ -315,12 +315,16 @@ export const AuthModal: React.FC = () => {
             </span>
           </div>
 
-          {/* 2. 휴대전화 번호 본인인증 섹션 (Phone Verification) */}
+          {/* 2. 휴대전화 번호 본인인증 섹션 (중국 항저우 기준) */}
           <div className="bg-slate-50/80 p-4 rounded-2xl border border-slate-200/80 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 font-bold text-slate-900">
                 <Smartphone className="w-4 h-4 text-purple-600" />
                 <span>휴대전화 번호 본인인증</span>
+                <span className="text-[10px] bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+                  <span>🇨🇳</span>
+                  <span>중국 항저우(杭州) 기준</span>
+                </span>
               </div>
               {isPhoneVerified ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[10px]">
@@ -342,8 +346,8 @@ export const AuthModal: React.FC = () => {
                     disabled={isPhoneVerified}
                     className="appearance-none bg-white border border-slate-200 text-slate-800 font-semibold py-2 pl-2.5 pr-7 rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-500 text-xs"
                   >
+                    <option value="+86">🇨🇳 +86 (중국 항저우 杭州)</option>
                     <option value="+82">🇰🇷 +82 (한국)</option>
-                    <option value="+86">🇨🇳 +86 (중국)</option>
                     <option value="+1">🇺🇸 +1 (미국)</option>
                     <option value="+81">🇯🇵 +81 (일본)</option>
                   </select>
@@ -353,7 +357,7 @@ export const AuthModal: React.FC = () => {
                 <div className="relative flex-1">
                   <input
                     type="tel"
-                    placeholder="010-1234-5678"
+                    placeholder="138-5718-8888 (항저우 11자리)"
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     disabled={isPhoneVerified}
@@ -369,6 +373,10 @@ export const AuthModal: React.FC = () => {
                 >
                   {otpSent ? '재발송' : '인증번호 발송'}
                 </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-500">
+                <span>📍 항저우(杭州) 지역번호 0571 / 중국 이동통신 SMS 실명 인증</span>
               </div>
 
               {/* OTP Input and verification timer */}
@@ -456,7 +464,7 @@ export const AuthModal: React.FC = () => {
                   <input
                     type="text"
                     required
-                    placeholder="예: 김지은"
+                    placeholder="예: 王小美 (Wang Xiaomei) 또는 김지은"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-3 py-2 text-slate-800 font-medium placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 text-xs"
@@ -473,7 +481,7 @@ export const AuthModal: React.FC = () => {
                   <Mail className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="email"
-                    placeholder="jieun@wedding.com"
+                    placeholder="xiaomei@wedding.cn"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full bg-white border border-slate-200 rounded-xl pl-8 pr-3 py-2 text-slate-800 font-medium placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-purple-500 text-xs"
