@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
 import { 
   Share2, QrCode, Smartphone, Award, DollarSign, Users, Sparkles, 
-  CheckCircle, Copy, ExternalLink, Calendar, ShieldCheck, Check, Clock
+  CheckCircle, Copy, ExternalLink, Calendar, ShieldCheck, Check, Clock,
+  DoorClosed
 } from 'lucide-react';
-import { DressItem } from '../../data/liveData';
+import { BookingItem, DressItem } from '../../data/liveData';
+import { PlannerFittingBooking } from './PlannerFittingBooking';
 
 interface PlannerPortalProps {
   dresses: DressItem[];
+  bookings?: BookingItem[];
+  onBookFitting?: (bookingData: Omit<BookingItem, 'id' | 'status'>) => Promise<void>;
+  onCancelBooking?: (bookingId: string) => void;
 }
 
-export const PlannerPortal: React.FC<PlannerPortalProps> = ({ dresses }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'planner' | 'helper'>('planner');
+export const PlannerPortal: React.FC<PlannerPortalProps> = ({
+  dresses,
+  bookings = [],
+  onBookFitting = async () => {},
+  onCancelBooking = () => {},
+}) => {
+  const [activeSubTab, setActiveSubTab] = useState<'booking' | 'planner' | 'helper'>('booking');
   const [copiedLink, setCopiedLink] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState(false);
   const [helperChecklist, setHelperChecklist] = useState({
@@ -44,7 +54,24 @@ export const PlannerPortal: React.FC<PlannerPortalProps> = ({ dresses }) => {
     <div className="space-y-6">
       {/* Planner vs Helper Sub-tab Switcher */}
       <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setActiveSubTab('booking')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
+              activeSubTab === 'booking'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+            }`}
+          >
+            <DoorClosed className="w-4 h-4" />
+            <span>피팅룸 실시간 예약</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+              activeSubTab === 'booking' ? 'bg-white text-purple-700' : 'bg-purple-100 text-purple-800'
+            }`}>
+              09:00~19:00
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveSubTab('planner')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 ${
@@ -54,7 +81,7 @@ export const PlannerPortal: React.FC<PlannerPortalProps> = ({ dresses }) => {
             }`}
           >
             <Share2 className="w-4 h-4" />
-            <span>플래너 소셜 마케팅 센터 (SCR-PLN-001/002)</span>
+            <span>소셜 마케팅 센터 (SCR-PLN-001/002)</span>
           </button>
 
           <button
@@ -66,7 +93,7 @@ export const PlannerPortal: React.FC<PlannerPortalProps> = ({ dresses }) => {
             }`}
           >
             <Smartphone className="w-4 h-4 text-emerald-400" />
-            <span>헬퍼(이모) 본식 현장 케어 (SCR-PLN-003)</span>
+            <span>헬퍼(이모) 본식 케어 (SCR-PLN-003)</span>
           </button>
         </div>
 
@@ -74,6 +101,17 @@ export const PlannerPortal: React.FC<PlannerPortalProps> = ({ dresses }) => {
           로그인: <strong className="text-slate-800">정하윤 수석 웨딩플래너</strong> (ID: PLN-SH-882)
         </span>
       </div>
+
+      {/* SUB-TAB 0: PLANNER FITTING ROOM LIVE BOOKING & SCHEDULE */}
+      {activeSubTab === 'booking' && (
+        <PlannerFittingBooking
+          dresses={dresses}
+          bookings={bookings}
+          onBookFitting={onBookFitting}
+          onCancelBooking={onCancelBooking}
+          currentPlannerId="PLN-SH-882 (정하윤 플래너)"
+        />
+      )}
 
       {/* SUB-TAB 1: PLANNER SOCIAL SHOP & VIRAL CENTER */}
       {activeSubTab === 'planner' && (

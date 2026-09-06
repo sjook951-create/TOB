@@ -89,9 +89,16 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
   useEffect(() => {
     fetchDbBookings();
     fetchSupabaseDresses();
+
+    // Real-time synchronization polling every 3.5 seconds
+    const interval = setInterval(() => {
+      fetchDbBookings();
+    }, 3500);
+
+    return () => clearInterval(interval);
   }, [fetchDbBookings, fetchSupabaseDresses]);
 
-  // 1. Handle B2C Booking (Persisted to Cloud SQL DB)
+  // 1. Handle B2C / Planner Booking (Persisted to Cloud SQL DB with Conflict Prevention)
   const handleBookFitting = async (bookingData: Omit<BookingItem, 'id' | 'status'>) => {
     const tempId = `BK-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${Math.floor(100 + Math.random() * 900)}`;
     const optimisticBooking: BookingItem = {
@@ -111,22 +118,31 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
         body: JSON.stringify(bookingData)
       });
 
-      if (res.ok) {
-        const result = await res.json();
-        if (result.success && result.data) {
-          setBookings(prev => prev.map(b => b.id === tempId ? result.data : b));
-          showToast(`[Cloud SQL 저장 완료] ${result.data.customerName}님의 피팅 예약(${result.data.id})이 데이터베이스에 영구 등록되었습니다!`);
-          return;
-        }
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        // Revert optimistic update!
+        setBookings(prev => prev.filter(b => b.id !== tempId));
+        await fetchDbBookings();
+        const errMsg = result.error || '해당 시간대는 이미 다른 플래너/고객이 예약하여 예약할 수 없습니다.';
+        showToast(`[예약 차단] ${errMsg}`);
+        throw new Error(errMsg);
       }
-      showToast(`[B2C O2O 예약 성공] ${optimisticBooking.customerName}님의 피팅 예약(${optimisticBooking.id})이 등록되었습니다.`);
-    } catch (e) {
-      console.error('Failed to persist booking to Cloud SQL:', e);
-      showToast(`[B2C O2O 예약 완료] ${optimisticBooking.customerName}님의 피팅 예약이 로컬에 저장되었습니다.`);
+
+      if (result.success && result.data) {
+        setBookings(prev => prev.map(b => b.id === tempId ? result.data : b));
+        await fetchDbBookings();
+        showToast(`[fitting_bookings DB 연동 완료] ${result.data.customerName}님의 피팅 예약이 확정되었습니다. 타 플래너의 중복 예약이 실시간 차단됩니다.`);
+        return;
+      }
+    } catch (e: any) {
+      setBookings(prev => prev.filter(b => b.id !== tempId));
+      await fetchDbBookings();
+      throw e;
     }
   };
 
-  // 2. Handle OSM Update Booking Status (Persisted to Cloud SQL)
+  // 2. Handle OSM / Planner Update Booking Status (Persisted to Cloud SQL & Frees Slot on Cancellation)
   const handleUpdateBookingStatus = async (bookingId: string, status: BookingItem['status'], stylist?: string) => {
     setBookings(prev => prev.map(b => {
       if (b.id === bookingId) {
@@ -140,14 +156,37 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
     }));
 
     try {
-      await fetch(`/api/bookings/${bookingId}/status`, {
-        method: 'PATCH',
+      const endpoint = (status === '예약취소' || status === '취소')
+        ? `/api/bookings/${bookingId}/cancel`
+        : `/api/bookings/${bookingId}/status`;
+
+      const method = (status === '예약취소' || status === '취소') ? 'POST' : 'PATCH';
+
+      const res = await fetch(endpoint, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status, assignedStylist: stylist })
       });
-      showToast(`[Cloud SQL 동기화] 예약(${bookingId}) 상태가 '${status}'(으)로 DB에 반영되었습니다.`);
+
+      if (!res.ok && method === 'POST') {
+        // Fallback to PATCH if cancel endpoint not hit
+        await fetch(`/api/bookings/${bookingId}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status, assignedStylist: stylist })
+        });
+      }
+
+      await fetchDbBookings();
+
+      if (status === '예약취소' || status === '취소') {
+        showToast(`[실시간 예약 취소 & 슬롯 해제] 예약(${bookingId})이 취소되어 fitting_bookings DB에서 해당 타임슬롯이 즉시 재가용 상태로 오픈되었습니다.`);
+      } else {
+        showToast(`[fitting_bookings DB 갱신] 예약(${bookingId}) 상태가 '${status}'(으)로 DB에 반영되었습니다.`);
+      }
     } catch (e) {
-      showToast(`[대리점 OSM] 예약(${bookingId}) 상태가 '${status}'(으)로 업데이트되었습니다.`);
+      console.warn('Status update sync error:', e);
+      await fetchDbBookings();
     }
   };
 
@@ -284,7 +323,7 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
       key: 'PMS',
       label: '본사 통합 관제 (PMS)',
       icon: <Building2 className="w-4 h-4" />,
-      desc: '상품 심사 & 7대 주체 다자간 정산',
+      desc: '상품 심사, 플래너 DB & 7대 주체 다자간 정산',
       badge: dresses.filter(d => d.status === '심사대기').length
     }
   ];
@@ -387,13 +426,19 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
             dresses={dresses}
             bookings={bookings}
             onBookFitting={handleBookFitting}
+            onCancelBooking={(bookingId) => handleUpdateBookingStatus(bookingId, '예약취소')}
             onRequestBookingOpen={() => {}}
             onUpdateBookingPayment={handleUpdateBookingPayment}
           />
         )}
 
         {activeRole === 'PLANNER' && (
-          <PlannerPortal dresses={dresses} />
+          <PlannerPortal
+            dresses={dresses}
+            bookings={bookings}
+            onBookFitting={handleBookFitting}
+            onCancelBooking={(bookingId) => handleUpdateBookingStatus(bookingId, '예약취소')}
+          />
         )}
 
         {activeRole === 'OSM' && (
@@ -418,8 +463,11 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
           <PmsOperatorPortal
             dresses={dresses}
             contracts={contracts}
+            bookings={bookings}
             onApproveDress={handleApproveDress}
             onExecuteSettlement={handleExecuteSettlement}
+            onUpdateBookingStatus={handleUpdateBookingStatus}
+            onRefreshBookings={fetchDbBookings}
           />
         )}
       </div>

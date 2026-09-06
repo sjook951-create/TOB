@@ -4,31 +4,42 @@ import {
   Check, Star, Clock, ChevronRight, Store, ArrowRight, UserCheck, CheckCircle2,
   CalendarCheck, X, CreditCard, Video, CheckSquare, Database
 } from 'lucide-react';
-import { DressItem, BookingItem } from '../../data/liveData';
+import { DressItem, BookingItem, FITTING_TIME_SLOTS, FITTING_ROOMS } from '../../data/liveData';
 import heroShowroomImg from '../../assets/images/hero_wedding_showroom_1788513831356.jpg';
 import { PaymentModal } from './PaymentModal';
 import { TiktokWanghongModal } from './TiktokWanghongModal';
 import { UserMenu } from '../auth/UserMenu';
 import { AiDressRecommendationView } from './AiDressRecommendationView';
+import { B2CFittingBookingView } from './B2CFittingBookingView';
 
 interface B2CConsumerPortalProps {
   dresses: DressItem[];
   bookings: BookingItem[];
-  onBookFitting: (booking: Omit<BookingItem, 'id' | 'status'>) => void;
+  onBookFitting: (booking: Omit<BookingItem, 'id' | 'status'>) => Promise<void> | void;
+  onCancelBooking?: (bookingId: string) => void;
   onRequestBookingOpen: (dressId?: string) => void;
   onUpdateBookingPayment?: (bookingId: string, paymentInfo: any) => void;
 }
+
+const getTodayDateString = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
   dresses,
   bookings,
   onBookFitting,
+  onCancelBooking,
   onRequestBookingOpen,
   onUpdateBookingPayment,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'catalog' | 'ai-recommend' | 'mywedding'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'ai-recommend' | 'fitting-booking' | 'mywedding'>('catalog');
   const [previewDress, setPreviewDress] = useState<DressItem | null>(null);
 
   // Batch Dress Selection State (Max 3 dresses for simultaneous fitting)
@@ -48,7 +59,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
     customerName: '',
     phone: '',
     storeName: '항저우 왕차오 센터점 (Wangchao Center)',
-    date: '2026-06-05',
+    date: getTodayDateString(),
     timeSlot: '14:00 ~ 16:00',
     fittingRoom: 'VIP Suite 1 (로열룸)',
     selectedDresses: [] as string[],
@@ -98,14 +109,17 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
   };
 
   const handleOpenBatchBooking = () => {
+    const today = getTodayDateString();
     setBookingForm(prev => ({
       ...prev,
+      date: today,
       selectedDresses: selectedBatchDressIds.length > 0 ? [...selectedBatchDressIds] : []
     }));
     setIsBookingModalOpen(true);
   };
 
   const handleOpenBooking = (dress?: DressItem) => {
+    const today = getTodayDateString();
     if (dress) {
       // If user has batch selection including this dress, keep batch; else prioritize this dress
       const initialDresses = selectedBatchDressIds.includes(dress.id)
@@ -113,11 +127,13 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
         : [dress.id];
       setBookingForm(prev => ({
         ...prev,
+        date: today,
         selectedDresses: initialDresses
       }));
     } else {
       setBookingForm(prev => ({
         ...prev,
+        date: today,
         selectedDresses: selectedBatchDressIds.length > 0 ? [...selectedBatchDressIds] : []
       }));
     }
@@ -144,7 +160,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
     });
   };
 
-  const handleSubmitBooking = (e: React.FormEvent) => {
+  const handleSubmitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!bookingForm.customerName || !bookingForm.phone) {
       alert('신부님 성함과 연락처를 입력해 주세요.');
@@ -154,10 +170,30 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
       alert('피팅 희망 드레스를 1개 이상 (최대 3개) 선택해 주세요.');
       return;
     }
-    onBookFitting(bookingForm);
-    setSelectedBatchDressIds([]); // Reset batch selection upon successful booking
-    setIsBookingModalOpen(false);
-    setActiveTab('mywedding');
+
+    // Check if slot is taken by another person
+    const isTaken = bookings.some(
+      (b) =>
+        b.date === bookingForm.date &&
+        b.storeName === bookingForm.storeName &&
+        b.fittingRoom === bookingForm.fittingRoom &&
+        b.timeSlot === bookingForm.timeSlot &&
+        b.status !== '취소' &&
+        b.status !== '예약취소'
+    );
+    if (isTaken) {
+      alert(`[예약 불가] 해당 일시(${bookingForm.date} ${bookingForm.timeSlot})는 이미 다른 플래너/고객이 예약했습니다. 다른 시간대를 선택해 주세요.`);
+      return;
+    }
+
+    try {
+      await onBookFitting(bookingForm);
+      setSelectedBatchDressIds([]); // Reset batch selection upon successful booking
+      setIsBookingModalOpen(false);
+      setActiveTab('mywedding');
+    } catch (err: any) {
+      alert(err.message || '예약 처리 중 오류가 발생했습니다.');
+    }
   };
 
   const handleSelectAllThreeDresses = (dressIds: string[]) => {
@@ -194,8 +230,8 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             <span>S2B2C 혁신 글로벌 웨딩 드레스 쇼룸</span>
           </div>
           
-          <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-            대한민국 최고의 웨딩 드레스 디자이너의<br />
+          <h2 id="b2c-hero-heading" className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
+            한국 최고의 웨딩 드레스 디자이너의<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-200 to-amber-200">
               작품을 직접 만나보세요
             </span>
@@ -215,11 +251,14 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             </button>
 
             <button
-              onClick={() => handleOpenBooking()}
+              onClick={() => {
+                setActiveTab('fitting-booking');
+                setBookingForm(prev => ({ ...prev, date: getTodayDateString() }));
+              }}
               className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-2"
             >
               <Calendar className="w-4 h-4" />
-              <span>O2O 피팅룸 예약하기 (U11)</span>
+              <span>피팅룸 실시간 예약</span>
             </button>
 
             <button
@@ -286,6 +325,22 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             </span>
           </button>
 
+          {/* 피팅룸 실시간 예약 메뉴 (fitting_bookings DB 연동) */}
+          <button
+            onClick={() => {
+              setActiveTab('fitting-booking');
+              setBookingForm(prev => ({ ...prev, date: getTodayDateString() }));
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs border ${
+              activeTab === 'fitting-booking'
+                ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white border-purple-800 ring-2 ring-purple-300 shadow-md'
+                : 'bg-white hover:bg-purple-50 text-purple-750 border-purple-200 hover:border-purple-300'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5 text-purple-600" />
+            <span>피팅룸 실시간 예약</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('mywedding')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
@@ -298,7 +353,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             <span>나의 예약 ({bookings.length})</span>
           </button>
 
-          {/* 피팅 예약 메뉴 (최대 3벌) */}
+          {/* 피팅 예약 모달 열기 버튼 (최대 3벌) */}
           <button
             onClick={handleOpenBatchBooking}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs border ${
@@ -567,6 +622,20 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
         />
       )}
 
+      {/* TAB: FITTING ROOM BOOKING (SCR-B2C-003, fitting_bookings DB 연동) */}
+      {activeTab === 'fitting-booking' && (
+        <B2CFittingBookingView
+          dresses={dresses}
+          bookings={bookings}
+          selectedBatchDressIds={selectedBatchDressIds}
+          onToggleBatchDress={handleToggleDressSelection}
+          onSelectAllThreeDresses={handleSelectAllThreeDresses}
+          onBookFitting={onBookFitting}
+          onCancelBooking={onCancelBooking}
+          onViewMyBookings={() => setActiveTab('mywedding')}
+        />
+      )}
+
       {/* TAB 2: MY WEDDING DASHBOARD */}
       {activeTab === 'mywedding' && (
         <div className="space-y-6">
@@ -579,7 +648,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                   </span>
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
                     <Database className="w-3 h-3 text-emerald-600" />
-                    <span>Cloud SQL (PostgreSQL) 실시간 동기화</span>
+                    <span>fitting_bookings DB 실시간 동기화</span>
                   </span>
                 </div>
                 <h3 className="text-base font-bold text-slate-900 mt-1">
@@ -587,10 +656,11 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                 </h3>
               </div>
               <button
-                onClick={() => handleOpenBooking()}
-                className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition"
+                onClick={() => setActiveTab('fitting-booking')}
+                className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5 shadow-xs"
               >
-                + 새로운 샵 피팅 예약하기
+                <Calendar className="w-3.5 h-3.5" />
+                <span>+ 새로운 피팅룸 예약하기</span>
               </button>
             </div>
 
@@ -599,7 +669,11 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                 {bookings.map((booking) => (
                   <div 
                     key={booking.id}
-                    className="p-5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition space-y-3"
+                    className={`p-5 rounded-xl border transition space-y-3 ${
+                      booking.status === '취소' || booking.status === '예약취소'
+                        ? 'border-rose-200 bg-rose-50/30 opacity-75'
+                        : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
+                    }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-200">
                       <div className="flex items-center gap-2">
@@ -610,7 +684,13 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                           {booking.customerName} 고객님 피팅 예약
                         </h4>
                       </div>
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+                        booking.status === '예약취소' || booking.status === '취소'
+                          ? 'bg-rose-100 text-rose-800 border-rose-200'
+                          : booking.status === '예약확정'
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                          : 'bg-purple-100 text-purple-800 border-purple-200'
+                      }`}>
                         {booking.status}
                       </span>
                     </div>
@@ -655,8 +735,32 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                           );
                         })}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-purple-600 font-medium">대리점 OSM 실시간 연계 승인 완료</span>
+
+                      <div className="flex flex-wrap items-center gap-2">
+                        {/* Instant Cancellation Button (Releases slot in fitting_bookings DB) */}
+                        {booking.status !== '취소' && booking.status !== '예약취소' ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`[피팅 예약 취소 확인]\n정말로 ${booking.date} (${booking.timeSlot}) 예약을 취소하시겠습니까?\n\n취소 즉시 fitting_bookings DB에서 해당 일시/타임슬롯이 잠금 해제되어 다시 예약 가능한 상태로 복구됩니다.`)) {
+                                if (onCancelBooking) {
+                                  onCancelBooking(booking.id);
+                                }
+                              }
+                            }}
+                            className="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-2xs"
+                            title="예약 취소 시 fitting_bookings DB에서 해당 타임슬롯이 즉시 해제되어 다시 예약 가능해집니다."
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            <span>예약 취소 (슬롯 즉시 재오픈)</span>
+                          </button>
+                        ) : (
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-500 rounded-lg text-[11px] font-medium border border-slate-200 flex items-center gap-1">
+                            <Check className="w-3 h-3 text-slate-400" />
+                            <span>예약 취소 완료 (타임슬롯 재오픈됨)</span>
+                          </span>
+                        )}
+
                         {booking.depositPaid ? (
                           <span className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-2xs">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -798,7 +902,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                 </select>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="font-semibold text-slate-700 block mb-1">피팅 희망 일자 *</label>
                   <input
@@ -810,15 +914,40 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">시간대 및 룸 *</label>
+                  <label className="font-semibold text-slate-700 block mb-1">피팅룸 선택 *</label>
+                  <select
+                    value={bookingForm.fittingRoom}
+                    onChange={(e) => setBookingForm({ ...bookingForm, fittingRoom: e.target.value })}
+                    className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-purple-500"
+                  >
+                    {FITTING_ROOMS.map((r) => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">시간대 (09:00~19:00, 2시간 단위) *</label>
                   <select
                     value={bookingForm.timeSlot}
                     onChange={(e) => setBookingForm({ ...bookingForm, timeSlot: e.target.value })}
                     className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:ring-2 focus:ring-purple-500"
                   >
-                    <option value="11:00 ~ 13:00">11:00 ~ 13:00 (오전)</option>
-                    <option value="14:00 ~ 16:00">14:00 ~ 16:00 (오후 골든)</option>
-                    <option value="16:30 ~ 18:30">16:30 ~ 18:30 (오후 늦게)</option>
+                    {FITTING_TIME_SLOTS.map((slot) => {
+                      const isTaken = bookings.some(
+                        (b) =>
+                          b.date === bookingForm.date &&
+                          b.storeName === bookingForm.storeName &&
+                          b.fittingRoom === bookingForm.fittingRoom &&
+                          b.timeSlot === slot &&
+                          b.status !== '취소' &&
+                          b.status !== '예약취소'
+                      );
+                      return (
+                        <option key={slot} value={slot} disabled={isTaken}>
+                          {slot} {isTaken ? '(예약 불가 / 이미 예약됨)' : '(예약 가능)'}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>

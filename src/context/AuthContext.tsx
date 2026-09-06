@@ -15,6 +15,7 @@ export interface AuthUser {
   role: UserRole;
   provider: SocialProvider;
   photoUrl?: string;
+  plannerNumber?: string; // HQ issued 8-digit planner number (e.g. 26-00275)
 }
 
 interface AuthContextType {
@@ -27,7 +28,14 @@ interface AuthContextType {
   closeAuthModal: () => void;
   sendPhoneOtp: (phone: string) => Promise<{ success: boolean; message: string; testCode?: string }>;
   verifyPhoneOtp: (phone: string, code: string) => Promise<{ success: boolean; message?: string }>;
-  registerWithPhone: (data: { name: string; phone: string; email?: string; role: UserRole }) => Promise<{ success: boolean; message?: string }>;
+  registerWithPhone: (data: { 
+    name: string; 
+    phone: string; 
+    email?: string; 
+    role: UserRole; 
+    plannerNumber?: string;
+    agency?: string;
+  }) => Promise<{ success: boolean; message?: string }>;
   loginWithPhone: (identifier: string) => Promise<{ success: boolean; message?: string }>;
   loginWithSocial: (provider: SocialProvider) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
@@ -101,7 +109,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // 3. 회원가입
-  const registerWithPhone = async (data: { name: string; phone: string; email?: string; role: UserRole }) => {
+  const registerWithPhone = async (data: { 
+    name: string; 
+    phone: string; 
+    email?: string; 
+    role: UserRole;
+    plannerNumber?: string;
+    agency?: string;
+  }) => {
     setIsLoading(true);
     try {
       const res = await fetch('/api/auth/signup', {
@@ -124,6 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: (result.user.role as UserRole) || 'B2C',
           provider: 'phone',
           photoUrl: result.user.photoUrl || undefined,
+          plannerNumber: result.user.plannerNumber || data.plannerNumber || undefined,
         };
         setUser(authUser);
         closeAuthModal();
@@ -158,6 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           role: (result.user.role as UserRole) || 'B2C',
           provider: (result.user.provider as SocialProvider) || 'phone',
           photoUrl: result.user.photoUrl || undefined,
+          plannerNumber: result.user.plannerNumber || undefined,
         };
         setUser(authUser);
         closeAuthModal();

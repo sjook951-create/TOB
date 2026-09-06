@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, Smartphone, CheckCircle, ShieldCheck, 
   Sparkles, Lock, User, Mail, ChevronDown, 
-  Globe, AlertCircle, RefreshCw, LogIn, UserPlus
+  Globe, AlertCircle, RefreshCw, LogIn, UserPlus,
+  BadgeCheck, Award, FileText, Search, CheckCircle2, XCircle, Loader2
 } from 'lucide-react';
 import { useAuth, SocialProvider, UserRole } from '../../context/AuthContext';
 
@@ -36,6 +37,111 @@ export const AuthModal: React.FC = () => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<UserRole>('B2C');
   const [agreeTerms, setAgreeTerms] = useState(true);
+
+  // Planner specific state (본사 발급 고유 플래너 번호 8자리, ex: 26-00715)
+  const [plannerNumber, setPlannerNumber] = useState('26-00715');
+  const [agency, setAgency] = useState('본사 직속 프리미엄 센터');
+  const [isVerifyingPlanner, setIsVerifyingPlanner] = useState(false);
+  const [isPlannerNumberVerified, setIsPlannerNumberVerified] = useState(false);
+  const [verifiedPlannerNumber, setVerifiedPlannerNumber] = useState<string | null>(null);
+  const [plannerVerificationResult, setPlannerVerificationResult] = useState<{
+    valid: boolean;
+    isUnique: boolean;
+    message: string;
+    planner?: any;
+  } | null>(null);
+
+  // Format planner number automatically
+  const handlePlannerNumberChange = (raw: string) => {
+    let clean = raw.toUpperCase().replace(/[^0-9-]/g, '');
+    if (!clean.includes('-') && clean.length > 2) {
+      clean = clean.slice(0, 2) + '-' + clean.slice(2, 7);
+    }
+    if (clean.length > 8) {
+      clean = clean.slice(0, 8);
+    }
+    setPlannerNumber(clean);
+
+    // If previously verified and user changes value, revoke verification
+    if (isPlannerNumberVerified && clean !== verifiedPlannerNumber) {
+      setIsPlannerNumberVerified(false);
+      setPlannerVerificationResult(null);
+    }
+  };
+
+  const isPlannerNumberValid = /^\d{2}-\d{5}$/.test(plannerNumber.trim());
+
+  // Real-time verify planner number against HQ DB and uniqueness check
+  const handleVerifyPlannerNumber = async (overrideNumber?: string) => {
+    const targetNumber = (overrideNumber || plannerNumber).trim();
+    setErrorMessage(null);
+    if (!targetNumber) {
+      setErrorMessage('본사에서 부여받은 8자리 플래너 번호를 입력해주세요.');
+      return;
+    }
+    if (!/^\d{2}-\d{5}$/.test(targetNumber)) {
+      setErrorMessage("플래너 번호는 '-'를 포함한 8자리 형식이어야 합니다. (예: 26-00275)");
+      return;
+    }
+
+    setIsVerifyingPlanner(true);
+    setPlannerVerificationResult(null);
+
+    try {
+      const res = await fetch('/api/planners/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plannerNumber: targetNumber }),
+      });
+      const data = await res.json();
+
+      if (data.success && data.valid && data.isUnique) {
+        setIsPlannerNumberVerified(true);
+        setVerifiedPlannerNumber(data.normalizedNumber);
+        setPlannerVerificationResult({
+          valid: true,
+          isUnique: true,
+          message: data.message || '본사 발급 정상 유효 번호 확인 완료 (가입 가능한 유일한 번호입니다)',
+          planner: data.planner,
+        });
+
+        // Auto populate name & agency from HQ pre-registration if not yet entered
+        if (data.planner) {
+          if (data.planner.agency && (!agency || agency === '본사 직속 파트너스')) {
+            setAgency(data.planner.agency);
+          }
+          if (data.planner.name && !name) {
+            setName(data.planner.name);
+          }
+        }
+      } else if (data.valid && !data.isUnique) {
+        setIsPlannerNumberVerified(false);
+        setVerifiedPlannerNumber(null);
+        setPlannerVerificationResult({
+          valid: true,
+          isUnique: false,
+          message: data.error || '이미 다른 회원 계정에 등록된 플래너 번호입니다. 유일한 미가입 번호만 사용할 수 있습니다.',
+        });
+      } else {
+        setIsPlannerNumberVerified(false);
+        setVerifiedPlannerNumber(null);
+        setPlannerVerificationResult({
+          valid: false,
+          isUnique: false,
+          message: data.error || '본사 공인 8자리 유효 번호 형식이 아닙니다.',
+        });
+      }
+    } catch (err: any) {
+      console.error('Planner verification error:', err);
+      setPlannerVerificationResult({
+        valid: false,
+        isUnique: false,
+        message: '플래너 번호 검증 서버와의 통신 중 오류가 발생했습니다.',
+      });
+    } finally {
+      setIsVerifyingPlanner(false);
+    }
+  };
 
   // Status message
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -134,12 +240,30 @@ export const AuthModal: React.FC = () => {
       return;
     }
 
+    if (role === 'PLANNER') {
+      const cleanNum = plannerNumber.trim();
+      if (!cleanNum) {
+        setErrorMessage('본사에서 발급한 고유한 플래너 번호를 입력해주세요.');
+        return;
+      }
+      if (!/^\d{2}-\d{5}$/.test(cleanNum)) {
+        setErrorMessage("플래너 번호는 '-'를 포함한 8자리 형식이어야 합니다. (예: 26-00275)");
+        return;
+      }
+      if (!isPlannerNumberVerified || cleanNum !== verifiedPlannerNumber) {
+        setErrorMessage('본사 발급 8자리 플래너 번호의 [조회 및 유효·유일 확인]을 먼저 완료해주세요.');
+        return;
+      }
+    }
+
     const fullPhone = `${countryCode} ${phoneNumber.trim()}`;
     const res = await registerWithPhone({
       name: name.trim(),
       phone: fullPhone,
       email: email.trim() || undefined,
       role,
+      plannerNumber: role === 'PLANNER' ? plannerNumber.trim() : undefined,
+      agency: role === 'PLANNER' ? agency.trim() : undefined,
     });
 
     if (!res.success) {
@@ -531,6 +655,219 @@ export const AuthModal: React.FC = () => {
                 </div>
               </div>
 
+              {/* Planner Specific Form - 본사 발급 고유 플래너 번호 (8자리 필수 및 유효/유일 확인) */}
+              {role === 'PLANNER' && (
+                <div className="p-3.5 bg-gradient-to-br from-purple-50/80 to-indigo-50/80 rounded-2xl border border-purple-200 space-y-3 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-purple-950 font-bold text-xs">
+                      <Award className="w-4 h-4 text-purple-600" />
+                      <span>본사 발급 8자리 플래너 번호</span>
+                      <span className="text-red-500">*</span>
+                    </div>
+
+                    {/* Status Badge */}
+                    {isPlannerNumberVerified ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300 shadow-2xs animate-in fade-in">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        유효 & 유일 번호 확인완료
+                      </span>
+                    ) : plannerVerificationResult && !plannerVerificationResult.isUnique ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-300 animate-in fade-in">
+                        <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                        중복 번호 (가입 불가)
+                      </span>
+                    ) : plannerVerificationResult && !plannerVerificationResult.valid ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300 animate-in fade-in">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                        형식 불일치
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-purple-800 bg-purple-100/90 px-2 py-0.5 rounded-full border border-purple-200">
+                        <Search className="w-3.5 h-3.5 text-purple-600" />
+                        본사 조회 확인 필수
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Input & Lookup/Verification Button */}
+                  <div className="space-y-1.5">
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <input
+                          type="text"
+                          value={plannerNumber}
+                          onChange={(e) => handlePlannerNumberChange(e.target.value)}
+                          placeholder="26-00715 (본사 발급 8자리)"
+                          maxLength={8}
+                          className={`w-full px-3.5 py-2.5 rounded-xl border font-mono text-xs tracking-wider uppercase font-semibold text-slate-900 transition bg-white focus:outline-none focus:ring-2 ${
+                            isPlannerNumberVerified
+                              ? 'border-emerald-400 focus:ring-emerald-500 bg-emerald-50/30 text-emerald-950'
+                              : plannerVerificationResult && !plannerVerificationResult.isUnique
+                              ? 'border-rose-400 focus:ring-rose-500 bg-rose-50/30 text-rose-950'
+                              : 'border-purple-300 focus:ring-purple-500'
+                          }`}
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleVerifyPlannerNumber()}
+                        disabled={isVerifyingPlanner || !plannerNumber.trim()}
+                        className={`px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition shadow-xs whitespace-nowrap cursor-pointer ${
+                          isPlannerNumberVerified
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            : 'bg-purple-600 hover:bg-purple-700 text-white'
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {isVerifyingPlanner ? (
+                          <>
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            <span>조회 중...</span>
+                          </>
+                        ) : isPlannerNumberVerified ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                            <span>확인 완료</span>
+                          </>
+                        ) : (
+                          <>
+                            <Search className="w-3.5 h-3.5" />
+                            <span>조회·유일 확인</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[11px] text-slate-500 px-0.5">
+                      <span>규격: 26-XXXXX (연도 2자리 - 일련번호 5자리)</span>
+                      <span className="font-mono">{plannerNumber.length}/8자리</span>
+                    </div>
+                  </div>
+
+                  {/* Real-time Verification Result Feedback Box */}
+                  {plannerVerificationResult && (
+                    <div className={`p-2.5 rounded-xl border text-xs animate-in fade-in transition ${
+                      plannerVerificationResult.valid && plannerVerificationResult.isUnique
+                        ? 'bg-emerald-50/90 border-emerald-300 text-emerald-900'
+                        : !plannerVerificationResult.isUnique
+                        ? 'bg-rose-50/90 border-rose-300 text-rose-900'
+                        : 'bg-amber-50/90 border-amber-300 text-amber-900'
+                    }`}>
+                      <div className="flex items-start gap-2">
+                        {plannerVerificationResult.valid && plannerVerificationResult.isUnique ? (
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                        ) : !plannerVerificationResult.isUnique ? (
+                          <XCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                        )}
+                        <div className="space-y-1">
+                          <p className="font-bold leading-tight">
+                            {plannerVerificationResult.valid && plannerVerificationResult.isUnique
+                              ? '유효한 번호 & 가입 가능한 유일 번호 확인 완료'
+                              : !plannerVerificationResult.isUnique
+                              ? '가입 불가: 이미 등록된 중복 플래너 번호'
+                              : '유효하지 않은 플래너 번호'}
+                          </p>
+                          <p className="text-[11px] leading-relaxed opacity-90">
+                            {plannerVerificationResult.message}
+                          </p>
+                          {plannerVerificationResult.planner && (
+                            <div className="inline-flex items-center gap-1.5 bg-white/80 px-2 py-0.5 rounded-md border border-emerald-200 text-[10px] text-emerald-800 font-semibold mt-0.5">
+                              <span>본사 발급 정보: {plannerVerificationResult.planner.name}</span>
+                              <span>•</span>
+                              <span>{plannerVerificationResult.planner.agency || '본사'}</span>
+                              <span>•</span>
+                              <span>{plannerVerificationResult.planner.grade || '인증 플래너'}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Quick Preset Buttons for Convenience */}
+                  <div className="pt-0.5">
+                    <div className="text-[10px] text-purple-900/80 font-bold mb-1 flex items-center justify-between">
+                      <span>본사 발급 번호 테스트 및 빠른 선택:</span>
+                      <span className="text-[9px] text-purple-600 font-normal">클릭 시 자동 조회·검증</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlannerNumber('26-00715');
+                          setName('최유리 플래너');
+                          setAgency('본사 직속 프리미엄 센터');
+                          handleVerifyPlannerNumber('26-00715');
+                        }}
+                        className="text-[10px] px-2 py-1 bg-white hover:bg-emerald-50 border border-emerald-300 rounded-lg text-emerald-900 font-mono font-semibold transition flex items-center gap-1"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        26-00715 (신규 최유리)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlannerNumber('26-00820');
+                          setName('황지민 플래너');
+                          setAgency('서울 청담 부티크 파트너스');
+                          handleVerifyPlannerNumber('26-00820');
+                        }}
+                        className="text-[10px] px-2 py-1 bg-white hover:bg-emerald-50 border border-emerald-300 rounded-lg text-emerald-900 font-mono font-semibold transition flex items-center gap-1"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        26-00820 (신규 황지민)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPlannerNumber('26-00275');
+                          setName('정하윤 플래너');
+                          setAgency('본사 직속 프리미엄 센터');
+                          handleVerifyPlannerNumber('26-00275');
+                        }}
+                        className="text-[10px] px-2 py-1 bg-white hover:bg-rose-50 border border-rose-300 rounded-lg text-rose-900 font-mono font-semibold transition flex items-center gap-1"
+                        title="이미 가입된 번호 - 중복 방지 테스트"
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                        26-00275 (중복 테스트)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const rand = Math.floor(10000 + Math.random() * 89999);
+                          const generated = `26-${rand}`;
+                          setPlannerNumber(generated);
+                          setAgency('본사 직속 파트너스');
+                          handleVerifyPlannerNumber(generated);
+                        }}
+                        className="text-[10px] px-2 py-1 bg-purple-100/70 hover:bg-purple-200/70 border border-purple-300 rounded-lg text-purple-900 font-mono font-semibold transition flex items-center gap-1"
+                      >
+                        <Sparkles className="w-3 h-3 text-purple-600" />
+                        신규 고유번호 생성 & 조회
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                      소속 웨딩컨설팅 / 에이전시
+                    </label>
+                    <input
+                      type="text"
+                      value={agency}
+                      onChange={(e) => setAgency(e.target.value)}
+                      placeholder="예: 본사 직속 프리미엄 센터, 베리굿웨딩, 아이니웨딩"
+                      className="w-full px-3 py-1.5 rounded-xl border border-purple-200 focus:outline-none focus:ring-2 focus:ring-purple-400 bg-white text-xs text-slate-900"
+                    />
+                  </div>
+
+                  <p className="text-[10px] text-purple-800 leading-relaxed bg-purple-100/60 p-2 rounded-xl border border-purple-200/60">
+                    ✨ <strong>플래너 인증 절차:</strong> 본사 부여 8자리 번호의 유효성 및 유일성을 조회한 후 승인된 번호에 한하여 가입이 완료되며, 가입 즉시 전국 피팅룸 실시간 예약 권한이 활성화됩니다.
+                  </p>
+                </div>
+              )}
+
               {/* Agreement */}
               <div className="pt-1">
                 <label className="flex items-start gap-2 cursor-pointer">
@@ -550,10 +887,20 @@ export const AuthModal: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-extrabold rounded-xl transition shadow-md flex items-center justify-center gap-2 text-xs"
+                className={`w-full py-3 text-white font-extrabold rounded-xl transition shadow-md flex items-center justify-center gap-2 text-xs cursor-pointer ${
+                  role === 'PLANNER' && !isPlannerNumberVerified
+                    ? 'bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600'
+                    : 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700'
+                }`}
               >
                 <UserPlus className="w-4 h-4" />
-                <span>회원가입 완료 및 로그인</span>
+                <span>
+                  {role === 'PLANNER'
+                    ? isPlannerNumberVerified
+                      ? '플래너 인증 및 회원가입 완료'
+                      : '플래너 8자리 번호 조회·확인 후 가입 완료'
+                    : '회원가입 완료 및 로그인'}
+                </span>
               </button>
 
               <div className="flex items-center justify-center gap-2 text-slate-500 text-[11px]">

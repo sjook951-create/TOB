@@ -11,6 +11,23 @@ export const users = pgTable('users', {
   role: text('role').default('B2C'),
   provider: text('provider').default('phone'),
   photoUrl: text('photo_url'),
+  plannerNumber: text('planner_number'), // HQ issued planner number (e.g. 26-00275)
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Define the 'planners' table for certified wedding planner registry
+export const planners = pgTable('planners', {
+  id: serial('id').primaryKey(),
+  plannerNumber: text('planner_number').notNull().unique(), // HQ issued 8-digit unique code: 26-00275
+  name: text('name').notNull(),
+  phone: text('phone').notNull(),
+  email: text('email'),
+  agency: text('agency').default('본사 직속 파트너스'), // 소속 에이전시 / 대리점
+  grade: text('grade').default('수석 플래너'),
+  status: text('status').notNull().default('인증완료'), // '인증완료' | '심사대기' | '정지'
+  userUid: text('user_uid'), // Linked Auth UID
+  commissionRate: text('commission_rate').default('15%'),
+  totalBookings: text('total_bookings').default('0'),
   createdAt: timestamp('created_at').defaultNow(),
 });
 

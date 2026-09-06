@@ -28,7 +28,7 @@ const inMemoryBookings: (typeof fittingBookings.$inferSelect)[] = [
     phone: '010-8742-9912',
     storeName: '항저우 왕차오 센터점 (Wangchao Center)',
     date: '2026-05-24',
-    timeSlot: '14:00 ~ 16:00',
+    timeSlot: '13:00 ~ 15:00',
     fittingRoom: 'VIP Suite 1 (로열룸)',
     selectedDresses: ['DR-001', 'DR-002'],
     weddingDate: '2026-09-12',
@@ -64,7 +64,7 @@ const inMemoryBookings: (typeof fittingBookings.$inferSelect)[] = [
     phone: '010-5592-8819',
     storeName: '상하이 와이탄 플래그십 (Bund Flagship)',
     date: '2026-05-26',
-    timeSlot: '16:00 ~ 18:00',
+    timeSlot: '15:00 ~ 17:00',
     fittingRoom: 'VIP Suite 1 (로열룸)',
     selectedDresses: ['DR-005', 'DR-007'],
     weddingDate: '2026-11-08',
@@ -73,7 +73,43 @@ const inMemoryBookings: (typeof fittingBookings.$inferSelect)[] = [
     status: '계약체결',
     assignedStylist: '천위안 총괄 실장',
     userUid: null,
-    createdAt: new Date('2026-05-22T09:15:00Z'),
+    createdAt: new Date('2026-05-22T09:00:00Z'),
+  },
+  {
+    id: 4,
+    bookingCode: 'BK-2026-092',
+    customerName: '한소희 & 이준석',
+    phone: '010-9988-3344',
+    storeName: '항저우 왕차오 센터점 (Wangchao Center)',
+    date: '2026-05-24',
+    timeSlot: '09:00 ~ 11:00',
+    fittingRoom: 'VIP Suite 1 (로열룸)',
+    selectedDresses: ['DR-007'],
+    weddingDate: '2026-10-18',
+    weddingVenue: '워커힐 호텔 애스톤하우스',
+    plannerCode: 'PLN-SH-104 (왕메이 플래너)',
+    status: '예약확정',
+    assignedStylist: '한예슬 디자이너',
+    userUid: null,
+    createdAt: new Date('2026-05-23T11:00:00Z'),
+  },
+  {
+    id: 5,
+    bookingCode: 'BK-2026-093',
+    customerName: '문채원 & 강민수',
+    phone: '010-5544-2211',
+    storeName: '항저우 왕차오 센터점 (Wangchao Center)',
+    date: '2026-05-24',
+    timeSlot: '17:00 ~ 19:00',
+    fittingRoom: 'VIP Suite 1 (로열룸)',
+    selectedDresses: ['DR-008'],
+    weddingDate: '2026-11-05',
+    weddingVenue: '롯데호텔 크리스탈볼룸',
+    plannerCode: 'PLN-KR-009 (최유리 플래너)',
+    status: '예약취소',
+    assignedStylist: '이소영 수석 스타일리스트',
+    userUid: null,
+    createdAt: new Date('2026-05-23T15:00:00Z'),
   },
 ];
 
@@ -147,15 +183,26 @@ export async function createBooking(input: CreateBookingInput) {
   return newBooking;
 }
 
-export async function updateBookingStatus(bookingCode: string, status: string) {
+export async function updateBookingStatus(bookingCode: string, status: string, assignedStylist?: string) {
+  const updateData: { status: string; assignedStylist?: string } = { status };
+  if (assignedStylist) {
+    updateData.assignedStylist = assignedStylist;
+  }
+
   if (isDatabaseConfigured && db) {
     try {
       const [updated] = await db
         .update(fittingBookings)
-        .set({ status })
+        .set(updateData)
         .where(eq(fittingBookings.bookingCode, bookingCode))
         .returning();
       if (updated) {
+        // Also update local inMemoryBookings
+        const localTarget = inMemoryBookings.find(b => b.bookingCode === bookingCode);
+        if (localTarget) {
+          localTarget.status = status;
+          if (assignedStylist) localTarget.assignedStylist = assignedStylist;
+        }
         return updated;
       }
     } catch (error) {
@@ -166,6 +213,7 @@ export async function updateBookingStatus(bookingCode: string, status: string) {
   const target = inMemoryBookings.find(b => b.bookingCode === bookingCode);
   if (target) {
     target.status = status;
+    if (assignedStylist) target.assignedStylist = assignedStylist;
     return target;
   }
   return null;

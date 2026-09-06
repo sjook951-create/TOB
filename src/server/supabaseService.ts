@@ -76,6 +76,23 @@ CREATE TABLE IF NOT EXISTS public.users (
   role TEXT DEFAULT 'B2C',
   provider TEXT DEFAULT 'phone',
   photo_url TEXT,
+  planner_number TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. planners 테이블 (본사 인증 플래너 전용 DB)
+CREATE TABLE IF NOT EXISTS public.planners (
+  id BIGSERIAL PRIMARY KEY,
+  planner_number TEXT UNIQUE NOT NULL, -- 8자리 고유번호 (예: 26-00275)
+  name TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  email TEXT,
+  agency TEXT DEFAULT '본사 직속 파트너스',
+  grade TEXT DEFAULT '수석 플래너',
+  status TEXT DEFAULT '인증완료' NOT NULL,
+  user_uid TEXT,
+  commission_rate TEXT DEFAULT '15%',
+  total_bookings TEXT DEFAULT '0',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

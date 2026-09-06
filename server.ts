@@ -2,7 +2,16 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { getAllBookings, createBooking, updateBookingStatus, deleteBooking } from "./src/db/bookings.ts";
-import { upsertUser, getUserByUid, getUserByPhone, getAllUsers, deleteUser, updateUserRole } from "./src/db/users.ts";
+import { upsertUser, getUserByUid, getUserByPhone, getUserByPlannerNumber, getAllUsers, deleteUser, updateUserRole } from "./src/db/users.ts";
+import { 
+  getAllPlanners, 
+  getPlannerByNumber, 
+  upsertPlanner, 
+  validatePlannerNumberFormat, 
+  normalizePlannerNumber,
+  deletePlanner,
+  updatePlanner
+} from "./src/db/planners.ts";
 import { optionalAuth, AuthRequest } from "./src/middleware/auth.ts";
 import { recommendDressesWithGemini } from "./src/server/aiRecommendService.ts";
 import { createPayPalOrder, capturePayPalOrder } from "./src/server/paypalService.ts";
@@ -94,12 +103,50 @@ async function startServer() {
     });
   });
 
-  // POST /api/auth/signup - 회원가입 및 Cloud SQL 저장
+  // POST /api/auth/signup - 회원가입 및 Cloud SQL 저장 (플래너 8자리 고유번호 검증 및 전용 DB 저장)
   app.post("/api/auth/signup", async (req, res) => {
     try {
-      const { name, phone, email, role, provider, photoUrl } = req.body;
+      const { name, phone, email, role, provider, photoUrl, plannerNumber, agency } = req.body;
       if (!name) {
         return res.status(400).json({ success: false, error: "회원 성명을 입력해주세요." });
+      }
+
+      // If user registers as a Planner, enforce the 8-character planner number rule (ex: 26-00275)
+      let cleanPlannerNumber: string | undefined = undefined;
+      if (role === 'PLANNER' || plannerNumber) {
+        if (!plannerNumber || !plannerNumber.trim()) {
+          return res.status(400).json({
+            success: false,
+            error: "플래너 회원가입 시 본사에서 발급한 고유한 플래너 번호('-' 포함 8자리, 예: 26-00275)를 반드시 입력해야 합니다."
+          });
+        }
+
+        const normalized = normalizePlannerNumber(plannerNumber);
+        if (!validatePlannerNumberFormat(normalized)) {
+          return res.status(400).json({
+            success: false,
+            error: "플래너 번호는 '-'를 포함한 8자리 형식이어야 합니다. (예: 26-00275)"
+          });
+        }
+
+        // Check if already registered by another user (Uniqueness Guarantee)
+        const existingUserWithNumber = await getUserByPlannerNumber(normalized);
+        if (existingUserWithNumber) {
+          return res.status(409).json({
+            success: false,
+            error: `플래너 번호 [${normalized}]는 이미 다른 회원 계정(${existingUserWithNumber.name})에 가입/연동되어 있습니다. 본사에서 새로 부여받은 유일한 신규 번호로만 가입할 수 있습니다.`
+          });
+        }
+
+        const existingPlanner = await getPlannerByNumber(normalized);
+        if (existingPlanner && existingPlanner.userUid) {
+          return res.status(409).json({
+            success: false,
+            error: `플래너 번호 [${normalized}]는 이미 가입 완료된 계정(${existingPlanner.name})이 존재합니다. 유일한 미가입 번호인지 확인 후 다시 시도해주세요.`
+          });
+        }
+
+        cleanPlannerNumber = normalized;
       }
 
       const uid = `USER-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
@@ -112,19 +159,198 @@ async function startServer() {
         provider: provider || 'phone',
         phoneVerified: phone ? 'true' : 'false',
         photoUrl: photoUrl || undefined,
+        plannerNumber: cleanPlannerNumber,
       });
+
+      // If registered as planner, save into the separate planners database table
+      if (role === 'PLANNER' && cleanPlannerNumber) {
+        await upsertPlanner({
+          plannerNumber: cleanPlannerNumber,
+          name,
+          phone: phone || '010-0000-0000',
+          email: email || undefined,
+          agency: agency || '본사 직속 파트너스',
+          grade: '인증 플래너',
+          status: '인증완료',
+          userUid: uid,
+        });
+      }
 
       // Background sync to Supabase if configured
       dualWriteUserToSupabase(savedUser).catch(() => {});
 
       res.status(201).json({
         success: true,
-        message: `${name}님의 회원가입이 완료되었습니다.`,
+        message: role === 'PLANNER'
+          ? `본사 인증 플래너(${cleanPlannerNumber}) ${name}님의 회원가입이 완료되었습니다.`
+          : `${name}님의 회원가입이 완료되었습니다.`,
         user: savedUser,
       });
     } catch (error: any) {
       console.error("Signup error:", error);
       res.status(500).json({ success: false, error: error.message || "회원가입 처리 중 오류 발생" });
+    }
+  });
+
+  // --- PLANNERS DATABASE APIS (별도 DB 테이블 관리) ---
+  // GET /api/planners - 전체 플래너 목록 조회 (전용 DB 테이블)
+  app.get("/api/planners", async (req, res) => {
+    try {
+      const all = await getAllPlanners();
+      res.json({ success: true, count: all.length, data: all });
+    } catch (error: any) {
+      console.error("Error fetching planners:", error);
+      res.status(500).json({ success: false, error: error.message || "플래너 목록 조회 실패" });
+    }
+  });
+
+  // GET /api/planners/:number - 8자리 플래너 번호로 조회
+  app.get("/api/planners/:number", async (req, res) => {
+    try {
+      const { number } = req.params;
+      const planner = await getPlannerByNumber(number);
+      if (!planner) {
+        return res.status(404).json({ success: false, error: "본사 발급 플래너 번호가 존재하지 않거나 일치하지 않습니다." });
+      }
+      res.json({ success: true, data: planner });
+    } catch (error: any) {
+      console.error("Error fetching planner by number:", error);
+      res.status(500).json({ success: false, error: error.message || "플래너 조회 실패" });
+    }
+  });
+
+  // POST /api/planners/verify - 플래너 번호 형식 및 인증 여부/유일 번호 실시간 확인
+  app.post("/api/planners/verify", async (req, res) => {
+    try {
+      const { plannerNumber } = req.body;
+      if (!plannerNumber) {
+        return res.status(400).json({ success: false, valid: false, isUnique: false, error: "플래너 번호를 입력해주세요." });
+      }
+      const normalized = normalizePlannerNumber(plannerNumber);
+      const isFormatValid = validatePlannerNumberFormat(normalized);
+      if (!isFormatValid) {
+        return res.status(400).json({ 
+          success: false, 
+          valid: false, 
+          isUnique: false,
+          error: "플래너 번호는 '-'를 포함한 8자리 형식이어야 합니다. (예: 26-00275)" 
+        });
+      }
+
+      const existingUser = await getUserByPlannerNumber(normalized);
+      const existingPlanner = await getPlannerByNumber(normalized);
+
+      // 이미 다른 회원 계정에 등록되었거나, userUid가 연결된 번호는 중복 가입 불가 (유일성 실패)
+      const isClaimed = !!existingUser || (existingPlanner !== null && !!existingPlanner.userUid);
+
+      if (isClaimed) {
+        return res.json({
+          success: true,
+          valid: true,
+          isUnique: false,
+          normalizedNumber: normalized,
+          error: `플래너 번호 [${normalized}]는 이미 다른 회원 계정에 등록되어 있습니다. 본사에서 새로 발급받은 유일한 신규 번호를 입력해주세요.`,
+          message: "이미 사용 중인 번호입니다 (중복 가입 불가)"
+        });
+      }
+
+      // 유효하고 유일한 번호
+      res.json({
+        success: true,
+        valid: true,
+        isUnique: true,
+        normalizedNumber: normalized,
+        planner: existingPlanner ? {
+          name: existingPlanner.name,
+          agency: existingPlanner.agency,
+          grade: existingPlanner.grade,
+          status: existingPlanner.status,
+          commissionRate: existingPlanner.commissionRate,
+        } : null,
+        message: existingPlanner 
+          ? `본사 발급 대기 정상 번호 확인 완료 (${existingPlanner.agency || '본사'} / ${existingPlanner.name}) - 가입 가능한 유일한 번호입니다.`
+          : "신규 본사 인가 8자리 유효 번호 확인 완료 (가입 가능한 유일한 번호)"
+      });
+    } catch (error: any) {
+      console.error("Error verifying planner number:", error);
+      res.status(500).json({ success: false, error: error.message || "플래너 번호 검증 실패" });
+    }
+  });
+
+  // POST /api/planners - 본사 관제탑에서 신규 플래너 등록/발급
+  app.post("/api/planners", async (req, res) => {
+    try {
+      const { plannerNumber, name, phone, email, agency, grade, commissionRate } = req.body;
+      if (!name || !phone) {
+        return res.status(400).json({ success: false, error: "플래너 성명과 연락처는 필수입니다." });
+      }
+      
+      let numberToUse = plannerNumber ? normalizePlannerNumber(plannerNumber) : '';
+      if (!numberToUse || !validatePlannerNumberFormat(numberToUse)) {
+        // Auto-generate 8-digit planner number: 26-XXXXX
+        const randDigits = Math.floor(10000 + Math.random() * 90000);
+        numberToUse = `26-${randDigits}`;
+      }
+
+      const existing = await getPlannerByNumber(numberToUse);
+      if (existing) {
+        return res.status(409).json({ success: false, error: `플래너 번호 [${numberToUse}]는 이미 등록되어 있습니다.` });
+      }
+
+      const newPlanner = await upsertPlanner({
+        plannerNumber: numberToUse,
+        name: name.trim(),
+        phone: phone.trim(),
+        email: email ? email.trim() : undefined,
+        agency: agency ? agency.trim() : '본사 직속 파트너스',
+        grade: grade || '인증 플래너',
+        status: '가입대기',
+        commissionRate: commissionRate || '15%',
+      });
+
+      res.status(201).json({
+        success: true,
+        message: `플래너 [${newPlanner.name}] (${newPlanner.plannerNumber}) 등록이 완료되었습니다.`,
+        data: newPlanner,
+      });
+    } catch (error: any) {
+      console.error("Error creating planner:", error);
+      res.status(500).json({ success: false, error: error.message || "플래너 등록 실패" });
+    }
+  });
+
+  // PATCH /api/planners/:number - 플래너 상태 및 정보 변경
+  app.patch("/api/planners/:number", async (req, res) => {
+    try {
+      const { number } = req.params;
+      const updates = req.body;
+      const updated = await updatePlanner(number, updates);
+      if (!updated) {
+        return res.status(404).json({ success: false, error: "해당 플래너를 찾을 수 없습니다." });
+      }
+      res.json({
+        success: true,
+        message: `플래너 [${updated.name}] 정보가 업데이트되었습니다.`,
+        data: updated,
+      });
+    } catch (error: any) {
+      console.error("Error updating planner:", error);
+      res.status(500).json({ success: false, error: error.message || "플래너 수정 실패" });
+    }
+  });
+
+  // DELETE /api/planners/:number - 플래너 인증 삭제/해제
+  app.delete("/api/planners/:number", async (req, res) => {
+    try {
+      const { number } = req.params;
+      const success = await deletePlanner(number);
+      if (!success) {
+        return res.status(404).json({ success: false, error: "삭제할 플래너가 존재하지 않습니다." });
+      }
+      res.json({ success: true, message: `플래너 [${number}]가 성공적으로 삭제되었습니다.` });
+    } catch (error: any) {
+      console.error("Error deleting planner:", error);
+      res.status(500).json({ success: false, error: error.message || "플래너 삭제 실패" });
     }
   });
 
@@ -299,13 +525,45 @@ async function startServer() {
         return res.status(400).json({ success: false, error: "필수 예약 항목(고객명, 연락처, 지점, 일시)이 누락되었습니다." });
       }
 
+      // REQUIREMENT: 피팅룸 실시간 예약은 본사 인증 플래너 전용 (8자리 플래너 번호 ex: 26-00275 필요)
+      const effectivePlannerCode = (plannerCode && plannerCode.trim().length > 0)
+        ? plannerCode.trim()
+        : ((req.user?.role === 'PLANNER' && (req.user as any).plannerNumber) ? (req.user as any).plannerNumber : null);
+
+      if (!effectivePlannerCode) {
+        return res.status(403).json({
+          success: false,
+          error: "피팅룸 실시간 예약은 본사 인증 플래너 전용 서비스입니다. 본사 발급 8자리 플래너 번호(예: 26-00275)를 입력하시거나 플래너 계정으로 로그인해주세요."
+        });
+      }
+
+      const targetRoom = fittingRoom || "VIP Suite 1 (로열룸)";
+
+      // Check conflict: cannot book if another active booking exists for the same store, date, room, and timeSlot
+      const existingBookings = await getAllBookings();
+      const conflict = existingBookings.find(b =>
+        b.storeName === storeName &&
+        b.date === date &&
+        b.timeSlot === timeSlot &&
+        b.fittingRoom === targetRoom &&
+        b.status !== '취소' &&
+        b.status !== '예약취소'
+      );
+
+      if (conflict) {
+        return res.status(409).json({
+          success: false,
+          error: `선택하신 일시(${date} ${timeSlot} / ${targetRoom})는 이미 다른 플래너(${conflict.plannerCode || '타 플래너'})가 예약하여 예약이 불가능합니다.`
+        });
+      }
+
       const inserted = await createBooking({
         customerName,
         phone,
         storeName,
         date,
         timeSlot,
-        fittingRoom: fittingRoom || "VIP 피팅룸 A",
+        fittingRoom: targetRoom,
         selectedDresses: Array.isArray(selectedDresses) ? selectedDresses : [],
         weddingDate: weddingDate || "미정",
         weddingVenue: weddingVenue || "미정",
@@ -346,12 +604,12 @@ async function startServer() {
   app.patch("/api/bookings/:code/status", async (req, res) => {
     try {
       const { code } = req.params;
-      const { status } = req.body;
+      const { status, assignedStylist } = req.body;
       if (!status) {
         return res.status(400).json({ success: false, error: "변경할 상태값이 필요합니다." });
       }
 
-      const updated = await updateBookingStatus(code, status);
+      const updated = await updateBookingStatus(code, status, assignedStylist);
       if (!updated) {
         return res.status(404).json({ success: false, error: "해당 예약을 찾을 수 없습니다." });
       }
@@ -363,6 +621,29 @@ async function startServer() {
     } catch (error: any) {
       console.error("Error updating booking status:", error);
       res.status(500).json({ success: false, error: error.message || "예약 상태 변경 실패" });
+    }
+  });
+
+  // POST /api/bookings/:code/cancel - Instantly cancel reservation and release time slot
+  app.post("/api/bookings/:code/cancel", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const updated = await updateBookingStatus(code, "예약취소");
+      if (!updated) {
+        return res.status(404).json({ success: false, error: "해당 예약을 찾을 수 없습니다." });
+      }
+
+      // Background sync to Supabase if configured
+      dualWriteBookingToSupabase(updated).catch(() => {});
+
+      res.json({
+        success: true,
+        message: "피팅룸 예약이 취소되었으며 해당 일시의 타임슬롯이 즉시 재가용 상태로 오픈되었습니다.",
+        data: updated
+      });
+    } catch (error: any) {
+      console.error("Error cancelling booking:", error);
+      res.status(500).json({ success: false, error: error.message || "예약 취소 처리 실패" });
     }
   });
 

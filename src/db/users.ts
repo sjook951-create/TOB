@@ -11,6 +11,7 @@ export interface UserInput {
   role?: string;
   provider?: string;
   photoUrl?: string;
+  plannerNumber?: string;
 }
 
 // In-memory fallback users cache
@@ -36,6 +37,7 @@ export async function upsertUser(input: UserInput) {
             role: input.role || existing[0].role,
             provider: input.provider || existing[0].provider,
             photoUrl: input.photoUrl || existing[0].photoUrl,
+            plannerNumber: input.plannerNumber || existing[0].plannerNumber,
           })
           .where(eq(users.uid, input.uid))
           .returning();
@@ -52,6 +54,7 @@ export async function upsertUser(input: UserInput) {
             role: input.role || 'B2C',
             provider: input.provider || 'phone',
             photoUrl: input.photoUrl || null,
+            plannerNumber: input.plannerNumber || null,
           })
           .returning();
         if (inserted) return inserted;
@@ -74,6 +77,7 @@ export async function upsertUser(input: UserInput) {
       role: input.role || existing.role,
       provider: input.provider || existing.provider,
       photoUrl: input.photoUrl || existing.photoUrl,
+      plannerNumber: input.plannerNumber || existing.plannerNumber,
     };
     inMemoryUsers[existingIndex] = updated;
     return updated;
@@ -88,6 +92,7 @@ export async function upsertUser(input: UserInput) {
       role: input.role || 'B2C',
       provider: input.provider || 'phone',
       photoUrl: input.photoUrl || null,
+      plannerNumber: input.plannerNumber || null,
       createdAt: new Date(),
     };
     inMemoryUsers.push(newUser);
@@ -125,6 +130,24 @@ export async function getUserByPhone(phone: string) {
     }
   }
   return inMemoryUsers.find(u => u.phone === phone) || null;
+}
+
+export async function getUserByPlannerNumber(plannerNumber: string) {
+  if (!plannerNumber) return null;
+  const clean = plannerNumber.trim();
+  if (isDatabaseConfigured && db) {
+    try {
+      const rows = await db
+        .select()
+        .from(users)
+        .where(eq(users.plannerNumber, clean))
+        .limit(1);
+      if (rows.length > 0) return rows[0];
+    } catch (error) {
+      console.warn("[Cloud SQL] getUserByPlannerNumber failed:", error);
+    }
+  }
+  return inMemoryUsers.find(u => u.plannerNumber === clean) || null;
 }
 
 export async function getAllUsers() {

@@ -1,26 +1,35 @@
 import React, { useState } from 'react';
 import { 
   Building2, CheckCircle, Clock, ShieldCheck, DollarSign, Users, Store,
-  AlertTriangle, Calculator, FileCheck, ArrowRight, Sparkles, Check
+  AlertTriangle, Calculator, FileCheck, ArrowRight, Sparkles, Check,
+  Calendar, DoorClosed, Award
 } from 'lucide-react';
-import { DressItem, RentalContract } from '../../data/liveData';
+import { BookingItem, DressItem, RentalContract } from '../../data/liveData';
 import { MemberManagementView } from './MemberManagementView';
 import { SupabaseStudioManager } from './SupabaseStudioManager';
+import { PmsFittingRoomManager } from './PmsFittingRoomManager';
+import { PlannerManagementView } from './PlannerManagementView';
 
 interface PmsOperatorPortalProps {
   dresses: DressItem[];
   contracts: RentalContract[];
+  bookings?: BookingItem[];
   onApproveDress: (dressId: string) => void;
   onExecuteSettlement: (contractId: string) => void;
+  onUpdateBookingStatus?: (bookingId: string, status: BookingItem['status'], stylist?: string) => void;
+  onRefreshBookings?: () => void;
 }
 
 export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
   dresses,
   contracts,
+  bookings = [],
   onApproveDress,
   onExecuteSettlement,
+  onUpdateBookingStatus = () => {},
+  onRefreshBookings,
 }) => {
-  const [activeTab, setActiveTab] = useState<'control' | 'approval' | 'settlement' | 'building' | 'members' | 'supabase'>('control');
+  const [activeTab, setActiveTab] = useState<'control' | 'fitting' | 'approval' | 'settlement' | 'building' | 'members' | 'supabase' | 'planners'>('control');
   
   // Custom Settlement Calculator State (Process U16)
   const [calcRentalFee, setCalcRentalFee] = useState<number>(2100000);
@@ -31,6 +40,9 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
 
   // Settlements pending (status === '반납검수' or '마감정산완료')
   const settlementReadyContracts = contracts.filter(c => c.status === '마감정산완료' || c.status === '반납검수');
+
+  // Active bookings count
+  const activeBookingsCount = bookings.filter(b => b.status !== '취소' && b.status !== '예약취소').length;
 
   // 7-Party distribution ratios
   const agencyShare = Math.round(calcRentalFee * 0.30); // 30% 대리점
@@ -79,6 +91,20 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
             }`}
           >
             통합 운영 관제탑
+          </button>
+          <button
+            onClick={() => setActiveTab('fitting')}
+            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition flex items-center gap-1.5 ${
+              activeTab === 'fitting' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <DoorClosed className="w-3.5 h-3.5" />
+            <span>피팅룸 예약 현황</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+              activeTab === 'fitting' ? 'bg-white text-purple-700' : 'bg-purple-100 text-purple-800'
+            }`}>
+              {activeBookingsCount}건
+            </span>
           </button>
           <button
             onClick={() => setActiveTab('approval')}
@@ -134,6 +160,18 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
               activeTab === 'supabase' ? 'bg-white text-emerald-800' : 'bg-emerald-100 text-emerald-800'
             }`}>Table Editor</span>
           </button>
+          <button
+            onClick={() => setActiveTab('planners')}
+            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition flex items-center gap-1.5 ${
+              activeTab === 'planners' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5" />
+            <span>플래너 테이블 바로가기</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+              activeTab === 'planners' ? 'bg-white text-purple-700' : 'bg-purple-100 text-purple-800'
+            }`}>8자리 DB</span>
+          </button>
         </div>
       </div>
 
@@ -151,10 +189,21 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
               <span className="text-lg font-bold text-indigo-700 mt-1 block">18개 지점</span>
               <span className="text-[10px] text-slate-500">항저우 왕차오, 상하이, 베이징 등</span>
             </div>
-            <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-slate-500 block">활성 파트너 플래너</span>
+            <div 
+              onClick={() => setActiveTab('planners')}
+              className="p-4 bg-white hover:bg-purple-50/50 cursor-pointer rounded-xl border border-slate-200 shadow-xs transition group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 block">활성 파트너 플래너</span>
+                <span className="text-[10px] font-bold text-purple-600 group-hover:underline flex items-center gap-0.5">
+                  테이블 바로가기 <ArrowRight className="w-2.5 h-2.5" />
+                </span>
+              </div>
               <span className="text-lg font-bold text-emerald-600 mt-1 block">420명</span>
-              <span className="text-[10px] text-emerald-700 font-semibold">위챗 모멘트 바이럴 확장</span>
+              <span className="text-[10px] text-purple-700 font-semibold flex items-center gap-1">
+                <Award className="w-3 h-3 text-purple-600" />
+                8자리 고유번호 DB 관리
+              </span>
             </div>
             <div className="p-4 bg-white rounded-xl border border-slate-200 shadow-xs">
               <span className="text-slate-500 block">심사 및 정산 대기 큐</span>
@@ -218,6 +267,18 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
                   </span>
                   <span className="text-emerald-700 font-bold flex items-center gap-1">
                     연동 허브 열기 <ArrowRight className="w-3 h-3" />
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setActiveTab('planners')}
+                  className="flex items-center justify-between p-2 bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 rounded-lg cursor-pointer transition border border-purple-300 shadow-2xs"
+                >
+                  <span className="font-bold text-purple-950 flex items-center gap-1.5">
+                    <Award className="w-4 h-4 text-purple-700" />
+                    <span>9. 본사 공인 플래너 DB 테이블 (8자리 고유번호/피팅룸 실시간 예약 권한)</span>
+                  </span>
+                  <span className="text-purple-800 font-extrabold flex items-center gap-1 bg-white px-2 py-0.5 rounded border border-purple-200 text-[11px]">
+                    플래너 테이블 바로가기 <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
               </div>
@@ -424,6 +485,16 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
         </div>
       )}
 
+      {/* TAB: FITTING ROOM RESERVATION CONTROL */}
+      {activeTab === 'fitting' && (
+        <PmsFittingRoomManager
+          bookings={bookings}
+          dresses={dresses}
+          onUpdateBookingStatus={onUpdateBookingStatus}
+          onRefresh={onRefreshBookings}
+        />
+      )}
+
       {/* TAB 4: BUILDING OWNER PARTNERSHIP (SCR-PMS-005) */}
       {activeTab === 'building' && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5 text-xs">
@@ -465,6 +536,11 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
       {/* TAB 6: SUPABASE STUDIO DATABASE INTEGRATION */}
       {activeTab === 'supabase' && (
         <SupabaseStudioManager dresses={dresses} />
+      )}
+
+      {/* TAB 7: CERTIFIED PLANNERS DATABASE TABLE (8-Digit Code & Fitting Auth) */}
+      {activeTab === 'planners' && (
+        <PlannerManagementView onNavigateToFitting={() => setActiveTab('fitting')} />
       )}
     </div>
   );
