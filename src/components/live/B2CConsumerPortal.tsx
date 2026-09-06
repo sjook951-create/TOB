@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Sparkles, Calendar, MapPin, Search, Filter, ShoppingBag, Heart, 
   Check, Star, Clock, ChevronRight, Store, ArrowRight, UserCheck, CheckCircle2,
-  CalendarCheck, X, CreditCard, Video, CheckSquare, Database
+  CalendarCheck, X, CreditCard, Video, CheckSquare, Database, Camera
 } from 'lucide-react';
 import { DressItem, BookingItem, FITTING_TIME_SLOTS, FITTING_ROOMS } from '../../data/liveData';
 import heroShowroomImg from '../../assets/images/hero_wedding_showroom_1788513831356.jpg';
@@ -11,6 +11,7 @@ import { TiktokWanghongModal } from './TiktokWanghongModal';
 import { UserMenu } from '../auth/UserMenu';
 import { AiDressRecommendationView } from './AiDressRecommendationView';
 import { B2CFittingBookingView } from './B2CFittingBookingView';
+import { WeddingPhotoStudiosView } from './WeddingPhotoStudiosView';
 
 interface B2CConsumerPortalProps {
   dresses: DressItem[];
@@ -19,6 +20,8 @@ interface B2CConsumerPortalProps {
   onCancelBooking?: (bookingId: string) => void;
   onRequestBookingOpen: (dressId?: string) => void;
   onUpdateBookingPayment?: (bookingId: string, paymentInfo: any) => void;
+  onShowToast?: (msg: string) => void;
+  initialTab?: 'catalog' | 'wedding-photo' | 'ai-recommend' | 'fitting-booking' | 'mywedding';
 }
 
 const getTodayDateString = () => {
@@ -36,10 +39,12 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
   onCancelBooking,
   onRequestBookingOpen,
   onUpdateBookingPayment,
+  onShowToast,
+  initialTab = 'catalog',
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'catalog' | 'ai-recommend' | 'fitting-booking' | 'mywedding'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'wedding-photo' | 'ai-recommend' | 'fitting-booking' | 'mywedding'>(initialTab);
   const [previewDress, setPreviewDress] = useState<DressItem | null>(null);
 
   // Batch Dress Selection State (Max 3 dresses for simultaneous fitting)
@@ -212,6 +217,85 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
 
   return (
     <div className="space-y-8">
+      {/* Top Wedding Category Navigation Bar */}
+      <div className="bg-white px-4 py-2.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none">
+          <span className="font-extrabold text-slate-800 text-[11px] mr-1 hidden sm:inline">웨딩 카테고리:</span>
+          
+          <button
+            type="button"
+            onClick={() => setActiveTab('catalog')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'catalog'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50'
+            }`}
+          >
+            <ShoppingBag className="w-3.5 h-3.5" />
+            <span>웨딩 드레스 쇼룸</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('wedding-photo')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'wedding-photo'
+                ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white shadow-xs ring-2 ring-purple-300'
+                : 'text-purple-750 hover:bg-purple-50 border border-purple-200/80 bg-purple-50/40'
+            }`}
+          >
+            <Camera className="w-3.5 h-3.5 text-purple-600" />
+            <span>웨딩 포토</span>
+            <span className="bg-amber-400 text-slate-950 text-[10px] px-1.5 py-0.2 rounded font-black">
+              NEW 입점
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('ai-recommend')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'ai-recommend'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>AI 맞춤 큐레이션</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('fitting-booking')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'fitting-booking'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5 text-purple-600" />
+            <span>피팅룸 예약</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('mywedding')}
+            className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'mywedding'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-600 hover:text-purple-700 hover:bg-purple-50'
+            }`}
+          >
+            <Heart className="w-3.5 h-3.5 text-rose-500" />
+            <span>마이웨딩 ({bookings.length})</span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <UserMenu />
+        </div>
+      </div>
+
       {/* Hero Showcase Section */}
       <div className="relative rounded-2xl overflow-hidden bg-slate-900 text-white shadow-lg">
         <div className="absolute inset-0 z-0">
@@ -227,43 +311,56 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
         <div className="relative z-10 p-6 sm:p-10 md:p-12 max-w-2xl space-y-4">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/30 border border-purple-400/40 text-purple-200 text-xs font-semibold backdrop-blur-xs">
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>S2B2C 혁신 글로벌 웨딩 드레스 쇼룸</span>
+            <span>S2B2C 혁신 글로벌 웨딩 드레스 & 포토 스튜디오</span>
           </div>
           
           <h2 id="b2c-hero-heading" className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-            한국 최고의 웨딩 드레스 디자이너의<br />
+            한국 최고의 웨딩 드레스 & 스튜디오를<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-200 to-amber-200">
-              작품을 직접 만나보세요
+              한 곳에서 직접 만나보세요
             </span>
           </h2>
 
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-lg">
-            원하는 드레스를 선택하고 1:1 맞춤 피팅을 경험하세요.
+            원하는 드레스를 선택하고 1:1 맞춤 피팅과 인기 포토 스튜디오 촬영을 원스톱으로 경험하세요.
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-3">
             <button
+              type="button"
+              onClick={() => setActiveTab('wedding-photo')}
+              className="px-5 py-2.5 bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-600 hover:to-indigo-600 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md transition flex items-center gap-2 ring-2 ring-purple-300/40 cursor-pointer"
+            >
+              <Camera className="w-4 h-4 text-purple-200 animate-pulse" />
+              <span>웨딩 포토 스튜디오</span>
+              <span className="bg-amber-400 text-slate-950 text-[10px] px-1.5 py-0.2 rounded font-black">NEW 입점</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab('ai-recommend')}
-              className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md transition flex items-center gap-2 ring-2 ring-amber-300/40"
+              className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md transition flex items-center gap-2 ring-2 ring-amber-300/40 cursor-pointer"
             >
               <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" />
               <span>AI 맞춤 드레스 3벌 추천</span>
             </button>
 
             <button
+              type="button"
               onClick={() => {
                 setActiveTab('fitting-booking');
                 setBookingForm(prev => ({ ...prev, date: getTodayDateString() }));
               }}
-              className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-2"
+              className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-2 cursor-pointer"
             >
               <Calendar className="w-4 h-4" />
-              <span>피팅룸 실시간 예약</span>
+              <span>피팅룸 예약</span>
             </button>
 
             <button
+              type="button"
               onClick={() => setActiveTab('mywedding')}
-              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold backdrop-blur-xs border border-white/20 transition flex items-center gap-1.5"
+              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs sm:text-sm font-semibold backdrop-blur-xs border border-white/20 transition flex items-center gap-1.5 cursor-pointer"
             >
               <CalendarCheck className="w-4 h-4" />
               <span>마이웨딩 예약 조회 ({bookings.length}건)</span>
@@ -278,8 +375,8 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             <span className="font-bold text-white text-sm">10,000+ 벌</span>
           </div>
           <div>
-            <span className="text-slate-400 block text-[11px]">파트너 디자이너</span>
-            <span className="font-bold text-white text-sm">150+ 아틀리에</span>
+            <span className="text-slate-400 block text-[11px]">입점 포토 스튜디오</span>
+            <span className="font-bold text-amber-300 text-sm">청담·제주·상하이</span>
           </div>
           <div>
             <span className="text-slate-400 block text-[11px]">오프라인 피팅샵</span>
@@ -287,7 +384,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
           </div>
           <div>
             <span className="text-slate-400 block text-[11px]">본식 헬퍼(이모) 케어</span>
-            <span className="font-bold text-purple-300 text-sm">전문 자격증 100%</span>
+            <span className="font-bold text-purple-300 text-sm">전문 자격</span>
           </div>
         </div>
       </div>
@@ -296,21 +393,37 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
       <div className="flex flex-wrap items-center justify-between border-b border-slate-200 pb-3 gap-2">
         <div className="flex flex-wrap items-center gap-2">
           <button
+            type="button"
             onClick={() => setActiveTab('catalog')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'catalog'
                 ? 'bg-purple-600 text-white shadow-xs'
                 : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
             }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>드레스 전체</span>
+            <span>웨딩 드레스</span>
+          </button>
+
+          {/* 웨딩 포토 메뉴 */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('wedding-photo')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs border cursor-pointer ${
+              activeTab === 'wedding-photo'
+                ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white border-purple-800 ring-2 ring-purple-300 shadow-md'
+                : 'bg-white hover:bg-purple-50 text-purple-750 border-purple-200 hover:border-purple-300'
+            }`}
+          >
+            <Camera className="w-3.5 h-3.5 text-purple-600" />
+            <span>웨딩 포토</span>
           </button>
 
           {/* AI 추천 메뉴 */}
           <button
+            type="button"
             onClick={() => setActiveTab('ai-recommend')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs border ${
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs border cursor-pointer ${
               activeTab === 'ai-recommend'
                 ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white border-purple-800 ring-2 ring-purple-300 shadow-md'
                 : 'bg-white hover:bg-purple-50 text-purple-700 border-purple-200 hover:border-purple-300'
@@ -318,11 +431,6 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-500" />
             <span>AI 맞춤 추천</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${
-              activeTab === 'ai-recommend' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
-            }`}>
-              3벌 큐레이션
-            </span>
           </button>
 
           {/* 피팅룸 실시간 예약 메뉴 (fitting_bookings DB 연동) */}
@@ -338,7 +446,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             }`}
           >
             <Calendar className="w-3.5 h-3.5 text-purple-600" />
-            <span>피팅룸 실시간 예약</span>
+            <span>피팅룸 예약</span>
           </button>
 
           <button
@@ -353,34 +461,12 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             <span>나의 예약 ({bookings.length})</span>
           </button>
 
-          {/* 피팅 예약 모달 열기 버튼 (최대 3벌) */}
-          <button
-            onClick={handleOpenBatchBooking}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs border ${
-              selectedBatchDressIds.length > 0
-                ? 'bg-purple-700 hover:bg-purple-800 text-white border-purple-800 ring-2 ring-purple-300'
-                : 'bg-white hover:bg-purple-50 text-purple-700 border-purple-200 hover:border-purple-300'
-            }`}
-            title="원하는 드레스를 최대 3벌 선택하여 한 번에 피팅 예약합니다"
-          >
-            <CheckSquare className="w-3.5 h-3.5" />
-            <span>피팅 예약</span>
-            <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold ${
-              selectedBatchDressIds.length > 0
-                ? 'bg-white text-purple-900'
-                : 'bg-purple-100 text-purple-800'
-            }`}>
-              {selectedBatchDressIds.length}/3벌 선택
-            </span>
-          </button>
-
           <button
             onClick={() => handleOpenPaymentModal()}
             className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-[#003087] via-[#0079C1] to-emerald-600 hover:opacity-95 text-white shadow-xs"
           >
             <CreditCard className="w-3.5 h-3.5" />
             <span>간편 결제</span>
-            <span className="bg-white/25 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">DEMO</span>
           </button>
 
           <button
@@ -608,6 +694,18 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* TAB: WEDDING PHOTO STUDIOS SHOWCASE */}
+      {activeTab === 'wedding-photo' && (
+        <WeddingPhotoStudiosView
+          onSelectDressShowroom={() => setActiveTab('catalog')}
+          onBookFitting={() => {
+            setActiveTab('fitting-booking');
+            setBookingForm(prev => ({ ...prev, date: getTodayDateString() }));
+          }}
+          onShowToast={onShowToast}
+        />
       )}
 
       {/* TAB: AI DRESS RECOMMENDATION */}

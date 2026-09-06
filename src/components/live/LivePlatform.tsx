@@ -297,9 +297,9 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
   const portalTabs: { key: LivePortalRole; label: string; icon: React.ReactNode; desc: string; badge?: number }[] = [
     {
       key: 'B2C',
-      label: 'B2C 웨딩 고객 몰',
+      label: 'B2C 고객 몰 (드레스·스튜디오)',
       icon: <ShoppingBag className="w-4 h-4" />,
-      desc: '소비자 온라인 쇼룸 & O2O 피팅 예약'
+      desc: '쇼룸, 포토 스튜디오 & O2O 피팅 예약'
     },
     {
       key: 'PLANNER',
@@ -429,6 +429,7 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
             onCancelBooking={(bookingId) => handleUpdateBookingStatus(bookingId, '예약취소')}
             onRequestBookingOpen={() => {}}
             onUpdateBookingPayment={handleUpdateBookingPayment}
+            onShowToast={showToast}
           />
         )}
 
