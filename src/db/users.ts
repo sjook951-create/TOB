@@ -126,3 +126,56 @@ export async function getUserByPhone(phone: string) {
   }
   return inMemoryUsers.find(u => u.phone === phone) || null;
 }
+
+export async function getAllUsers() {
+  if (isDatabaseConfigured && db) {
+    try {
+      const rows = await db
+        .select()
+        .from(users)
+        .orderBy(users.createdAt);
+      return rows.reverse();
+    } catch (error) {
+      console.warn("[Cloud SQL] getAllUsers failed:", error);
+    }
+  }
+  return [...inMemoryUsers].reverse();
+}
+
+export async function deleteUser(uid: string) {
+  if (isDatabaseConfigured && db) {
+    try {
+      await db.delete(users).where(eq(users.uid, uid));
+      return true;
+    } catch (error) {
+      console.warn("[Cloud SQL] deleteUser failed:", error);
+    }
+  }
+  const idx = inMemoryUsers.findIndex(u => u.uid === uid);
+  if (idx !== -1) {
+    inMemoryUsers.splice(idx, 1);
+    return true;
+  }
+  return false;
+}
+
+export async function updateUserRole(uid: string, role: string) {
+  if (isDatabaseConfigured && db) {
+    try {
+      const [updated] = await db
+        .update(users)
+        .set({ role })
+        .where(eq(users.uid, uid))
+        .returning();
+      if (updated) return updated;
+    } catch (error) {
+      console.warn("[Cloud SQL] updateUserRole failed:", error);
+    }
+  }
+  const user = inMemoryUsers.find(u => u.uid === uid);
+  if (user) {
+    user.role = role;
+    return user;
+  }
+  return null;
+}

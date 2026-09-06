@@ -61,9 +61,35 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
     }
   }, []);
 
+  // Fetch registered dresses from Supabase if available
+  const fetchSupabaseDresses = useCallback(async () => {
+    try {
+      const res = await fetch('/api/dresses');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setDresses(prev => {
+            const map = new Map<string, DressItem>(prev.map(d => [d.id, d]));
+            for (const item of json.data) {
+              const existing = map.get(item.id);
+              map.set(item.id, {
+                ...item,
+                imageUrl: item.imageUrl || existing?.imageUrl || '',
+              });
+            }
+            return Array.from(map.values());
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch dresses from Supabase:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchDbBookings();
-  }, [fetchDbBookings]);
+    fetchSupabaseDresses();
+  }, [fetchDbBookings, fetchSupabaseDresses]);
 
   // 1. Handle B2C Booking (Persisted to Cloud SQL DB)
   const handleBookFitting = async (bookingData: Omit<BookingItem, 'id' | 'status'>) => {
@@ -179,21 +205,43 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
     showToast(`[계약 관리] 계약(${contractId})이 '${status}' 상태로 갱신되었습니다.`);
   };
 
-  // 5. Handle SCM Register Dress (U1)
-  const handleRegisterDress = (newDress: DressItem) => {
+  // 5. Handle SCM Register Dress (U1) - Dual write to Supabase
+  const handleRegisterDress = async (newDress: DressItem) => {
     setDresses(prev => [newDress, ...prev]);
-    showToast(`[공급상 SCM] 신규 드레스 '${newDress.name}' 등록 완료! 본사 PMS 심사 대기열(U2)로 전달되었습니다.`);
+    showToast(`[공급상 SCM] 신규 드레스 '${newDress.name}' 등록 완료! 본사 PMS 심사 대기열(U2) 및 Supabase에 전달되었습니다.`);
+
+    // Dual-write to Supabase dresses table
+    try {
+      await fetch('/api/dresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newDress),
+      });
+    } catch (err) {
+      console.warn('Failed to dual-write dress to Supabase:', err);
+    }
   };
 
-  // 6. Handle PMS Approve Dress (U2)
-  const handleApproveDress = (dressId: string) => {
+  // 6. Handle PMS Approve Dress (U2) - Update status in Supabase
+  const handleApproveDress = async (dressId: string) => {
     setDresses(prev => prev.map(d => {
       if (d.id === dressId) {
         return { ...d, status: '가용', tag: '2026 S/S 신작' };
       }
       return d;
     }));
-    showToast(`[본사 PMS] 드레스(${dressId}) 심사 승인 완료! B2C 쇼룸 및 OSM 샵에 즉시 노출됩니다.`);
+    showToast(`[본사 PMS] 드레스(${dressId}) 심사 승인 완료! B2C 쇼룸 및 Supabase에 '가용' 상태로 즉시 반영되었습니다.`);
+
+    // Update status in Supabase
+    try {
+      await fetch(`/api/dresses/${dressId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: '가용' }),
+      });
+    } catch (err) {
+      console.warn('Failed to update dress status in Supabase:', err);
+    }
   };
 
   // 7. Handle PMS Execute Settlement (U16)

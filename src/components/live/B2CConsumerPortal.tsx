@@ -265,7 +265,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            <span>드레스 둘러보기 ({filteredDresses.length})</span>
+            <span>드레스 전체</span>
           </button>
 
           {/* AI 추천 메뉴 */}
@@ -324,7 +324,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-[#003087] via-[#0079C1] to-emerald-600 hover:opacity-95 text-white shadow-xs"
           >
             <CreditCard className="w-3.5 h-3.5" />
-            <span>간편 결제 (PayPal · 알리 · 위챗)</span>
+            <span>간편 결제</span>
             <span className="bg-white/25 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">DEMO</span>
           </button>
 

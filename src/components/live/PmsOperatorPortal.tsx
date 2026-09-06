@@ -4,6 +4,8 @@ import {
   AlertTriangle, Calculator, FileCheck, ArrowRight, Sparkles, Check
 } from 'lucide-react';
 import { DressItem, RentalContract } from '../../data/liveData';
+import { MemberManagementView } from './MemberManagementView';
+import { SupabaseStudioManager } from './SupabaseStudioManager';
 
 interface PmsOperatorPortalProps {
   dresses: DressItem[];
@@ -18,7 +20,7 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
   onApproveDress,
   onExecuteSettlement,
 }) => {
-  const [activeTab, setActiveTab] = useState<'control' | 'approval' | 'settlement' | 'building'>('control');
+  const [activeTab, setActiveTab] = useState<'control' | 'approval' | 'settlement' | 'building' | 'members' | 'supabase'>('control');
   
   // Custom Settlement Calculator State (Process U16)
   const [calcRentalFee, setCalcRentalFee] = useState<number>(2100000);
@@ -108,6 +110,30 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
           >
             건물주 파트너십 (20%)
           </button>
+          <button
+            onClick={() => setActiveTab('members')}
+            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition flex items-center gap-1.5 ${
+              activeTab === 'members' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>회원 DB 관리 (Cloud SQL)</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+              activeTab === 'members' ? 'bg-white text-purple-700' : 'bg-emerald-100 text-emerald-800'
+            }`}>PostgreSQL</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('supabase')}
+            className={`px-3 py-1.5 rounded-lg font-semibold whitespace-nowrap transition flex items-center gap-1.5 ${
+              activeTab === 'supabase' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span>Supabase Studio 연동</span>
+            <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
+              activeTab === 'supabase' ? 'bg-white text-emerald-800' : 'bg-emerald-100 text-emerald-800'
+            }`}>Table Editor</span>
+          </button>
         </div>
       </div>
 
@@ -169,6 +195,30 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
                 <div className="flex items-center justify-between p-2 bg-slate-50 rounded-lg">
                   <span className="font-semibold text-slate-700">6. 마스터 기준정보 시스템 (BIS)</span>
                   <span className="text-slate-600 font-bold">다국어/환율 기준정보 동기화</span>
+                </div>
+                <div 
+                  onClick={() => setActiveTab('members')}
+                  className="flex items-center justify-between p-2 bg-purple-50 hover:bg-purple-100 rounded-lg cursor-pointer transition border border-purple-200"
+                >
+                  <span className="font-semibold text-purple-900 flex items-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-purple-600" />
+                    <span>7. 회원 데이터베이스 (Cloud SQL PostgreSQL)</span>
+                  </span>
+                  <span className="text-purple-700 font-bold flex items-center gap-1">
+                    관리 콘솔 바로가기 <ArrowRight className="w-3 h-3" />
+                  </span>
+                </div>
+                <div 
+                  onClick={() => setActiveTab('supabase')}
+                  className="flex items-center justify-between p-2 bg-emerald-50 hover:bg-emerald-100 rounded-lg cursor-pointer transition border border-emerald-200"
+                >
+                  <span className="font-semibold text-emerald-900 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>8. Supabase Studio 대시보드 (Table Editor)</span>
+                  </span>
+                  <span className="text-emerald-700 font-bold flex items-center gap-1">
+                    연동 허브 열기 <ArrowRight className="w-3 h-3" />
+                  </span>
                 </div>
               </div>
             </div>
@@ -405,6 +455,16 @@ export const PmsOperatorPortal: React.FC<PmsOperatorPortalProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* TAB 5: MEMBERS DATABASE MANAGEMENT (Cloud SQL / PostgreSQL) */}
+      {activeTab === 'members' && (
+        <MemberManagementView />
+      )}
+
+      {/* TAB 6: SUPABASE STUDIO DATABASE INTEGRATION */}
+      {activeTab === 'supabase' && (
+        <SupabaseStudioManager dresses={dresses} />
       )}
     </div>
   );

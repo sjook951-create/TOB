@@ -2,10 +2,24 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { getAllBookings, createBooking, updateBookingStatus, deleteBooking } from "./src/db/bookings.ts";
-import { upsertUser, getUserByUid, getUserByPhone } from "./src/db/users.ts";
+import { upsertUser, getUserByUid, getUserByPhone, getAllUsers, deleteUser, updateUserRole } from "./src/db/users.ts";
 import { optionalAuth, AuthRequest } from "./src/middleware/auth.ts";
 import { recommendDressesWithGemini } from "./src/server/aiRecommendService.ts";
 import { createPayPalOrder, capturePayPalOrder } from "./src/server/paypalService.ts";
+import {
+  getSupabaseProjectInfo,
+  SUPABASE_SQL_SCHEMA,
+  testSupabaseConnection,
+  syncUsersToSupabase,
+  syncBookingsToSupabase,
+  syncDressesToSupabase,
+  getSupabaseDresses,
+  dualWriteUserToSupabase,
+  dualWriteBookingToSupabase,
+  dualWriteDressToSupabase,
+  updateSupabaseDressStatus,
+  setRuntimeSupabaseKey,
+} from "./src/server/supabaseService.ts";
 
 // In-memory store for phone OTP verification codes
 const phoneVerificationStore = new Map<string, { code: string; expiresAt: number }>();
@@ -100,6 +114,9 @@ async function startServer() {
         photoUrl: photoUrl || undefined,
       });
 
+      // Background sync to Supabase if configured
+      dualWriteUserToSupabase(savedUser).catch(() => {});
+
       res.status(201).json({
         success: true,
         message: `${name}님의 회원가입이 완료되었습니다.`,
@@ -129,6 +146,9 @@ async function startServer() {
         phone: phone || undefined,
         phoneVerified: phone ? 'true' : 'false',
       });
+
+      // Background sync to Supabase if configured
+      dualWriteUserToSupabase(savedUser).catch(() => {});
 
       res.json({
         success: true,
@@ -174,6 +194,57 @@ async function startServer() {
     } catch (error: any) {
       console.error("Login error:", error);
       res.status(500).json({ success: false, error: error.message || "로그인 처리 실패" });
+    }
+  });
+
+  // GET /api/users - Retrieve all registered members from Cloud SQL
+  app.get("/api/users", async (req, res) => {
+    try {
+      const rows = await getAllUsers();
+      res.json({
+        success: true,
+        count: rows.length,
+        data: rows,
+      });
+    } catch (error: any) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ success: false, error: error.message || "회원 목록 조회 실패" });
+    }
+  });
+
+  // DELETE /api/users/:uid - Delete user from Cloud SQL
+  app.delete("/api/users/:uid", async (req, res) => {
+    try {
+      const { uid } = req.params;
+      const ok = await deleteUser(uid);
+      if (ok) {
+        res.json({ success: true, message: `회원(${uid})이 데이터베이스에서 삭제되었습니다.` });
+      } else {
+        res.status(404).json({ success: false, error: "해당 회원을 찾을 수 없습니다." });
+      }
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ success: false, error: error.message || "회원 삭제 실패" });
+    }
+  });
+
+  // PATCH /api/users/:uid/role - Update user role
+  app.patch("/api/users/:uid/role", async (req, res) => {
+    try {
+      const { uid } = req.params;
+      const { role } = req.body;
+      if (!role) {
+        return res.status(400).json({ success: false, error: "변경할 권한(role)을 지정해주세요." });
+      }
+      const updated = await updateUserRole(uid, role);
+      if (updated) {
+        res.json({ success: true, message: "회원 권한이 변경되었습니다.", user: updated });
+      } else {
+        res.status(404).json({ success: false, error: "해당 회원을 찾을 수 없습니다." });
+      }
+    } catch (error: any) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ success: false, error: error.message || "권한 변경 실패" });
     }
   });
 
@@ -244,6 +315,9 @@ async function startServer() {
         userUid: req.user?.uid,
       });
 
+      // Background sync to Supabase if configured
+      dualWriteBookingToSupabase(inserted).catch(() => {});
+
       res.status(201).json({
         success: true,
         data: {
@@ -282,6 +356,9 @@ async function startServer() {
         return res.status(404).json({ success: false, error: "해당 예약을 찾을 수 없습니다." });
       }
 
+      // Background sync to Supabase if configured
+      dualWriteBookingToSupabase(updated).catch(() => {});
+
       res.json({ success: true, data: updated });
     } catch (error: any) {
       console.error("Error updating booking status:", error);
@@ -303,6 +380,152 @@ async function startServer() {
       res.status(500).json({ success: false, error: error.message || "예약 삭제 실패" });
     }
   });
+
+  // ==========================================
+  // SUPABASE STUDIO DATABASE INTEGRATION APIS
+  // ==========================================
+
+  // GET /api/supabase/status - Supabase Studio 연동 정보 및 상태 조회
+  app.get("/api/supabase/status", async (req, res) => {
+    try {
+      const info = getSupabaseProjectInfo();
+      res.json({
+        success: true,
+        data: info,
+      });
+    } catch (error: any) {
+      console.error("Supabase status error:", error);
+      res.status(500).json({ success: false, error: error.message || "Supabase 상태 조회 실패" });
+    }
+  });
+
+  // GET /api/supabase/schema - Supabase Studio SQL Editor용 DDL 스크립트 제공
+  app.get("/api/supabase/schema", (req, res) => {
+    res.type("text/plain").send(SUPABASE_SQL_SCHEMA);
+  });
+
+  // POST /api/supabase/test - Supabase Studio 연결 테스트
+  app.post("/api/supabase/test", async (req, res) => {
+    try {
+      const result = await testSupabaseConnection();
+      res.json(result);
+    } catch (error: any) {
+      console.error("Supabase test error:", error);
+      res.status(500).json({ success: false, message: error.message || "연결 테스트 오류" });
+    }
+  });
+
+  // POST /api/supabase/config - Supabase API 키 설정 (anon 또는 service_role)
+  app.post("/api/supabase/config", async (req, res) => {
+    try {
+      const { key } = req.body;
+      if (!key || typeof key !== 'string' || key.trim().length === 0) {
+        return res.status(400).json({ success: false, error: "유효한 Supabase API 키를 입력해주세요." });
+      }
+      setRuntimeSupabaseKey(key.trim());
+      const testResult = await testSupabaseConnection();
+      res.json({
+        success: true,
+        message: "Supabase API 키가 성공적으로 등록되었습니다.",
+        testResult,
+      });
+    } catch (error: any) {
+      console.error("Supabase config error:", error);
+      res.status(500).json({ success: false, error: error.message || "키 설정 실패" });
+    }
+  });
+
+  // POST /api/supabase/sync - 현재 Cloud SQL/로컬의 모든 회원, 예약, 드레스 데이터를 Supabase로 즉시 전송
+  app.post("/api/supabase/sync", async (req, res) => {
+    try {
+      const allUsersList = await getAllUsers();
+      const allBookingsList = await getAllBookings();
+      const dressesList = req.body.dresses || [];
+
+      const userSync = await syncUsersToSupabase(allUsersList);
+      const bookingSync = await syncBookingsToSupabase(allBookingsList);
+      let dressSync: { syncedCount: number; error?: string } = { syncedCount: 0 };
+      if (Array.isArray(dressesList) && dressesList.length > 0) {
+        dressSync = await syncDressesToSupabase(dressesList);
+      }
+
+      if (userSync.error || bookingSync.error || dressSync.error) {
+        return res.status(400).json({
+          success: false,
+          message: userSync.error || bookingSync.error || dressSync.error || "Supabase 동기화 중 오류 발생",
+          details: { userSync, bookingSync, dressSync },
+        });
+      }
+
+      const dressMsg = dressSync.syncedCount > 0 ? `, 드레스 ${dressSync.syncedCount}벌` : '';
+      res.json({
+        success: true,
+        message: `Supabase Studio로 회원 ${userSync.syncedCount}명, 피팅 예약 ${bookingSync.syncedCount}건${dressMsg}이 즉시 동기화되었습니다.`,
+        synced: {
+          users: userSync.syncedCount,
+          bookings: bookingSync.syncedCount,
+          dresses: dressSync.syncedCount,
+        },
+      });
+    } catch (error: any) {
+      console.error("Supabase sync error:", error);
+      res.status(500).json({ success: false, message: error.message || "동기화 실패" });
+    }
+  });
+
+  // GET /api/dresses - Supabase에서 등록된 드레스 목록 조회
+  app.get("/api/dresses", async (req, res) => {
+    try {
+      const supabaseDresses = await getSupabaseDresses();
+      res.json({
+        success: true,
+        count: supabaseDresses.length,
+        data: supabaseDresses,
+      });
+    } catch (error: any) {
+      console.error("Fetch dresses error:", error);
+      res.status(500).json({ success: false, error: error.message || "드레스 목록 조회 실패" });
+    }
+  });
+
+  // POST /api/dresses - 신규 드레스 등록 (Supabase에 실시간 영구 저장)
+  app.post("/api/dresses", async (req, res) => {
+    try {
+      const dress = req.body;
+      if (!dress || !dress.id || !dress.name) {
+        return res.status(400).json({ success: false, error: "드레스 필수 정보(id, name)가 누락되었습니다." });
+      }
+      await dualWriteDressToSupabase(dress);
+      res.json({
+        success: true,
+        message: `드레스 '${dress.name}'(${dress.id})가 Supabase dresses 테이블에 등록되었습니다.`,
+        data: dress,
+      });
+    } catch (error: any) {
+      console.error("Create dress error:", error);
+      res.status(500).json({ success: false, error: error.message || "드레스 등록 실패" });
+    }
+  });
+
+  // PATCH /api/dresses/:id/status - 드레스 상태 변경 (심사 승인, 가용, 대여중 등)
+  app.patch("/api/dresses/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      if (!status) {
+        return res.status(400).json({ success: false, error: "변경할 상태값이 누락되었습니다." });
+      }
+      await updateSupabaseDressStatus(id, status);
+      res.json({
+        success: true,
+        message: `드레스(${id}) 상태가 '${status}'(으)로 갱신되었습니다.`,
+      });
+    } catch (error: any) {
+      console.error("Update dress status error:", error);
+      res.status(500).json({ success: false, error: error.message || "드레스 상태 갱신 실패" });
+    }
+  });
+
 
   // POST /api/gemini/recommend-dresses - AI 웨딩 드레스 맞춤 3벌 추천
   app.post("/api/gemini/recommend-dresses", async (req, res) => {
