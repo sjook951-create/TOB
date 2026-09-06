@@ -1,6 +1,6 @@
 {
   "name": "TOBMALL 웨딩 플랫폼 화면 구성 설계서",
-  "description": "TOBMALL 및 Planner X S2B2C 웨딩 생태계 실동작 웹사이트 및 화면 구성 설계서, UI 와이어프레임, 다자간 정산 시스템",
+  "description": "TOBMALL 및 Planner X S2B2C 웨딩 생태계 실동작 웹사이트 및 화면 구성 설계서, UI 와이어프레임, 다자간 정산 시스템, Gemini AI 기반 3벌 맞춤 드레스 추천",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

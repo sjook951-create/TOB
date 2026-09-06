@@ -9,12 +9,14 @@ import heroShowroomImg from '../../assets/images/hero_wedding_showroom_178851383
 import { PaymentModal } from './PaymentModal';
 import { TiktokWanghongModal } from './TiktokWanghongModal';
 import { UserMenu } from '../auth/UserMenu';
+import { AiDressRecommendationView } from './AiDressRecommendationView';
 
 interface B2CConsumerPortalProps {
   dresses: DressItem[];
   bookings: BookingItem[];
   onBookFitting: (booking: Omit<BookingItem, 'id' | 'status'>) => void;
   onRequestBookingOpen: (dressId?: string) => void;
+  onUpdateBookingPayment?: (bookingId: string, paymentInfo: any) => void;
 }
 
 export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
@@ -22,10 +24,11 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
   bookings,
   onBookFitting,
   onRequestBookingOpen,
+  onUpdateBookingPayment,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'catalog' | 'mywedding'>('catalog');
+  const [activeTab, setActiveTab] = useState<'catalog' | 'ai-recommend' | 'mywedding'>('catalog');
   const [previewDress, setPreviewDress] = useState<DressItem | null>(null);
 
   // Batch Dress Selection State (Max 3 dresses for simultaneous fitting)
@@ -76,7 +79,8 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
     const matchesSearch = 
       dress.name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
       dress.designer.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-      dress.silhouette.toLowerCase().includes(searchKeyword.toLowerCase());
+      dress.silhouette.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+      dress.tag.toLowerCase().includes(searchKeyword.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -156,6 +160,20 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
     setActiveTab('mywedding');
   };
 
+  const handleSelectAllThreeDresses = (dressIds: string[]) => {
+    setSelectedBatchDressIds(dressIds.slice(0, 3));
+  };
+
+  const handleOpenBookingModalWithDresses = (dressIds: string[]) => {
+    const validIds = dressIds.slice(0, 3);
+    setSelectedBatchDressIds(validIds);
+    setBookingForm(prev => ({
+      ...prev,
+      selectedDresses: validIds
+    }));
+    setIsBookingModalOpen(true);
+  };
+
   return (
     <div className="space-y-8">
       {/* Hero Showcase Section */}
@@ -177,7 +195,7 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
           </div>
           
           <h2 className="text-2xl sm:text-4xl font-extrabold tracking-tight leading-tight">
-            한국 최고의 웨딩 드레스 디자이너의<br />
+            대한민국 최고의 웨딩 드레스 디자이너의<br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-pink-200 to-amber-200">
               작품을 직접 만나보세요
             </span>
@@ -188,6 +206,14 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-3">
+            <button
+              onClick={() => setActiveTab('ai-recommend')}
+              className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white rounded-xl text-xs sm:text-sm font-extrabold shadow-md transition flex items-center gap-2 ring-2 ring-amber-300/40"
+            >
+              <Sparkles className="w-4 h-4 text-amber-200 animate-pulse" />
+              <span>AI 맞춤 드레스 3벌 추천</span>
+            </button>
+
             <button
               onClick={() => handleOpenBooking()}
               className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition flex items-center gap-2"
@@ -242,6 +268,24 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
             <span>드레스 둘러보기 ({filteredDresses.length})</span>
           </button>
 
+          {/* AI 추천 메뉴 */}
+          <button
+            onClick={() => setActiveTab('ai-recommend')}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs border ${
+              activeTab === 'ai-recommend'
+                ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white border-purple-800 ring-2 ring-purple-300 shadow-md'
+                : 'bg-white hover:bg-purple-50 text-purple-700 border-purple-200 hover:border-purple-300'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>AI 맞춤 추천</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded font-extrabold ${
+              activeTab === 'ai-recommend' ? 'bg-white/20 text-white' : 'bg-purple-100 text-purple-800'
+            }`}>
+              3벌 큐레이션
+            </span>
+          </button>
+
           <button
             onClick={() => setActiveTab('mywedding')}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
@@ -277,10 +321,10 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
 
           <button
             onClick={() => handleOpenPaymentModal()}
-            className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:from-blue-500 hover:via-indigo-500 hover:to-emerald-500 text-white shadow-xs"
+            className="px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 bg-gradient-to-r from-[#003087] via-[#0079C1] to-emerald-600 hover:opacity-95 text-white shadow-xs"
           >
             <CreditCard className="w-3.5 h-3.5" />
-            <span>알리 위챗 결제</span>
+            <span>간편 결제 (PayPal · 알리 · 위챗)</span>
             <span className="bg-white/25 text-white text-[10px] px-1.5 py-0.2 rounded font-bold">DEMO</span>
           </button>
 
@@ -511,6 +555,18 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
         </div>
       )}
 
+      {/* TAB: AI DRESS RECOMMENDATION */}
+      {activeTab === 'ai-recommend' && (
+        <AiDressRecommendationView
+          dresses={dresses}
+          selectedBatchDressIds={selectedBatchDressIds}
+          onToggleBatchDress={handleToggleDressSelection}
+          onSelectAllThreeDresses={handleSelectAllThreeDresses}
+          onOpenBookingModalWithDresses={handleOpenBookingModalWithDresses}
+          onPreviewDress={(dress) => setPreviewDress(dress)}
+        />
+      )}
+
       {/* TAB 2: MY WEDDING DASHBOARD */}
       {activeTab === 'mywedding' && (
         <div className="space-y-6">
@@ -601,14 +657,21 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-purple-600 font-medium">대리점 OSM 실시간 연계 승인 완료</span>
-                        <button
-                          type="button"
-                          onClick={() => handleOpenPaymentModal(booking.id)}
-                          className="px-2.5 py-1 bg-gradient-to-r from-blue-600 to-emerald-600 hover:from-blue-700 hover:to-emerald-700 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-xs"
-                        >
-                          <CreditCard className="w-3 h-3" />
-                          <span>보증금 결제 (알리/위챗)</span>
-                        </button>
+                        {booking.depositPaid ? (
+                          <span className="px-2.5 py-1 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-[11px] font-bold flex items-center gap-1 shadow-2xs">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>보증금 결제 완료 ({booking.paymentMethod === 'paypal' ? 'PayPal' : booking.paymentMethod === 'alipay' ? '알리페이' : '위챗페이'})</span>
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenPaymentModal(booking.id)}
+                            className="px-2.5 py-1 bg-gradient-to-r from-[#003087] via-[#0079C1] to-emerald-600 hover:opacity-95 text-white rounded-lg text-[11px] font-bold transition flex items-center gap-1 shadow-xs"
+                          >
+                            <CreditCard className="w-3 h-3" />
+                            <span>보증금 간편결제 (PayPal/알리/위챗)</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -904,12 +967,17 @@ export const B2CConsumerPortal: React.FC<B2CConsumerPortalProps> = ({
           </div>
         </div>
       )}
-      {/* ALIPAY & WECHAT PAY DEMO MODAL */}
+      {/* GLOBAL PAYMENT MODAL (PAYPAL, ALIPAY, WECHAT) */}
       <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={() => setIsPaymentModalOpen(false)}
         bookings={bookings}
         defaultBookingId={targetBookingIdForPayment}
+        onPaymentSuccess={(paymentInfo) => {
+          if (paymentInfo.bookingId && onUpdateBookingPayment) {
+            onUpdateBookingPayment(paymentInfo.bookingId, paymentInfo);
+          }
+        }}
       />
 
       {/* TIKTOK WANGHONG LIVE MODAL */}

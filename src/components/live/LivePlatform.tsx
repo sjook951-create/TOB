@@ -125,6 +125,43 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
     }
   };
 
+  // 2-1. Handle Booking Payment Update (PayPal / Alipay / WeChat)
+  const handleUpdateBookingPayment = (
+    bookingId: string,
+    paymentInfo: {
+      method: 'paypal' | 'alipay' | 'wechat';
+      amountKrw: number;
+      amountUsd: number;
+      txId: string;
+      payerEmail?: string;
+    }
+  ) => {
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId
+          ? {
+              ...b,
+              depositPaid: true,
+              depositAmount: paymentInfo.amountKrw,
+              paymentMethod: paymentInfo.method,
+              paymentTxId: paymentInfo.txId,
+            }
+          : b
+      )
+    );
+
+    const methodLabel =
+      paymentInfo.method === 'paypal'
+        ? 'PayPal (글로벌 간편결제)'
+        : paymentInfo.method === 'alipay'
+          ? '알리페이(支付宝)'
+          : '위챗페이(微信支付)';
+
+    showToast(
+      `[결제 승인 완료] #${bookingId} 예약의 보증금이 ${methodLabel}로 정상 승인되었습니다. (승인번호: ${paymentInfo.txId})`
+    );
+  };
+
   // 3. Handle OSM Create Contract
   const handleCreateContract = (contract: RentalContract) => {
     setContracts(prev => [contract, ...prev]);
@@ -303,6 +340,7 @@ export const LivePlatform: React.FC<LivePlatformProps> = ({ onSwitchToDocumentat
             bookings={bookings}
             onBookFitting={handleBookFitting}
             onRequestBookingOpen={() => {}}
+            onUpdateBookingPayment={handleUpdateBookingPayment}
           />
         )}
 

@@ -20,6 +20,11 @@ import floralAppliqueAlineImg from '../../assets/images/floral_applique_aline_dr
 import classicMikadoEmpireImg from '../../assets/images/classic_mikado_empire_dress.jpg';
 import illusionLaceMermaidImg from '../../assets/images/illusion_lace_mermaid_dress.jpg';
 import goldenImperialFusionImg from '../../assets/images/golden_imperial_fusion_dress.jpg';
+import imperialCrimsonXiuheImg from '../../assets/images/imperial_crimson_xiuhe_dress.jpg';
+import royalVioletEveningImg from '../../assets/images/royal_violet_evening_dress.jpg';
+import vividFuchsiaCoutureImg from '../../assets/images/vivid_fuchsia_couture_dress.jpg';
+import midnightSapphireEmpireImg from '../../assets/images/midnight_sapphire_empire_dress.jpg';
+import sunsetPeachCoralImg from '../../assets/images/sunset_peach_coral_dress.jpg';
 
 interface ScmSupplierPortalProps {
   dresses: DressItem[];
@@ -42,6 +47,11 @@ const PRESET_DRESS_PHOTOS = [
   { label: '미카도 클래식 엠파이어', img: classicMikadoEmpireImg, category: 'Empire' as const, silhouette: '클래식 엠파이어' },
   { label: '일루전 레이스 백리스', img: illusionLaceMermaidImg, category: 'Mermaid' as const, silhouette: '피티드 일루전 머메이드' },
   { label: '골든 엠브로이더리 퓨전', img: goldenImperialFusionImg, category: 'Traditional Fusion' as const, silhouette: '하이엔드 퓨전 오리엔탈' },
+  { label: '임페리얼 크림슨 수화복', img: imperialCrimsonXiuheImg, category: 'Traditional Fusion' as const, silhouette: '임페리얼 롱 스커트 수화복' },
+  { label: '로열 바이올렛 이브닝', img: royalVioletEveningImg, category: 'Mermaid' as const, silhouette: '슬림 피티드 머메이드' },
+  { label: '비비드 푸시아 로즈', img: vividFuchsiaCoutureImg, category: 'A-Line' as const, silhouette: '모던 슬릿 하이 에이라인' },
+  { label: '미드나잇 사파이어 인디고', img: midnightSapphireEmpireImg, category: 'Ball Gown' as const, silhouette: '글래머러스 이브닝 볼가운' },
+  { label: '선셋 피치 코랄 플로잉', img: sunsetPeachCoralImg, category: 'A-Line' as const, silhouette: '소프트 플로잉 A라인' },
 ];
 
 export const ScmSupplierPortal: React.FC<ScmSupplierPortalProps> = ({

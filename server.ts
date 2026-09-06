@@ -4,6 +4,8 @@ import { createServer as createViteServer } from "vite";
 import { getAllBookings, createBooking, updateBookingStatus, deleteBooking } from "./src/db/bookings.ts";
 import { upsertUser, getUserByUid, getUserByPhone } from "./src/db/users.ts";
 import { optionalAuth, AuthRequest } from "./src/middleware/auth.ts";
+import { recommendDressesWithGemini } from "./src/server/aiRecommendService.ts";
+import { createPayPalOrder, capturePayPalOrder } from "./src/server/paypalService.ts";
 
 // In-memory store for phone OTP verification codes
 const phoneVerificationStore = new Map<string, { code: string; expiresAt: number }>();
@@ -299,6 +301,83 @@ async function startServer() {
     } catch (error: any) {
       console.error("Error deleting booking:", error);
       res.status(500).json({ success: false, error: error.message || "예약 삭제 실패" });
+    }
+  });
+
+  // POST /api/gemini/recommend-dresses - AI 웨딩 드레스 맞춤 3벌 추천
+  app.post("/api/gemini/recommend-dresses", async (req, res) => {
+    try {
+      const { preferences, candidateDresses } = req.body;
+      if (!preferences) {
+        return res.status(400).json({ success: false, error: "고객 스타일링 선호도 정보가 누락되었습니다." });
+      }
+
+      console.log(`[AI 드레스 추천 요청] Age: ${preferences.age}, Style: ${preferences.style}, Budget: ${preferences.budget}`);
+
+      const result = await recommendDressesWithGemini(preferences, candidateDresses || []);
+
+      res.json({
+        success: true,
+        data: result,
+      });
+    } catch (error: any) {
+      console.error("AI Dress recommendation error:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "드레스 추천 분석 중 오류가 발생했습니다.",
+      });
+    }
+  });
+
+  // POST /api/payment/paypal/create-order - PayPal 주문 생성
+  app.post("/api/payment/paypal/create-order", async (req, res) => {
+    try {
+      const { amountKrw, amountUsd, orderId, bookingId, itemDescription } = req.body;
+      const order = await createPayPalOrder({
+        amountKrw: Number(amountKrw) || 50000,
+        amountUsd: Number(amountUsd) || 37.31,
+        orderId,
+        bookingId,
+        itemDescription,
+      });
+
+      res.json({
+        success: true,
+        data: order,
+      });
+    } catch (error: any) {
+      console.error("PayPal Create Order Error:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "PayPal 주문 생성 중 오류가 발생했습니다.",
+      });
+    }
+  });
+
+  // POST /api/payment/paypal/capture-order - PayPal 결제 승인/캡처
+  app.post("/api/payment/paypal/capture-order", async (req, res) => {
+    try {
+      const { orderId, amountUsd, payerEmail } = req.body;
+      if (!orderId) {
+        return res.status(400).json({ success: false, error: "주문 번호가 누락되었습니다." });
+      }
+
+      const capture = await capturePayPalOrder(
+        orderId,
+        Number(amountUsd) || 37.31,
+        payerEmail
+      );
+
+      res.json({
+        success: true,
+        data: capture,
+      });
+    } catch (error: any) {
+      console.error("PayPal Capture Order Error:", error);
+      res.status(500).json({
+        success: false,
+        error: error.message || "PayPal 결제 승인 중 오류가 발생했습니다.",
+      });
     }
   });
 

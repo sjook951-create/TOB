@@ -39,6 +39,11 @@ import archWindowSilhouetteImg from '../assets/images/arch_window_silhouette_dre
 import coutureRibbonBowImg from '../assets/images/couture_ribbon_bow_dress.jpg';
 import goldenHourChiffonImg from '../assets/images/golden_hour_chiffon_dress.jpg';
 import botanicalRomanceLaceImg from '../assets/images/botanical_romance_lace_dress.jpg';
+import imperialCrimsonXiuheImg from '../assets/images/imperial_crimson_xiuhe_dress.jpg';
+import royalVioletEveningImg from '../assets/images/royal_violet_evening_dress.jpg';
+import vividFuchsiaCoutureImg from '../assets/images/vivid_fuchsia_couture_dress.jpg';
+import midnightSapphireEmpireImg from '../assets/images/midnight_sapphire_empire_dress.jpg';
+import sunsetPeachCoralImg from '../assets/images/sunset_peach_coral_dress.jpg';
 
 export interface DressItem {
   id: string;
@@ -72,6 +77,10 @@ export interface BookingItem {
   plannerCode?: string;
   status: '예약확정' | '피팅완료' | '계약체결' | '취소';
   assignedStylist?: string;
+  depositPaid?: boolean;
+  depositAmount?: number;
+  paymentMethod?: 'paypal' | 'alipay' | 'wechat';
+  paymentTxId?: string;
 }
 
 export interface RentalContract {
@@ -787,6 +796,91 @@ export const INITIAL_DRESSES: DressItem[] = [
     rating: 5.0,
     rentalCount: 13,
     description: '유럽 모델의 단아한 매력과 풍성한 스커트 라인이 조화를 이루는 퓨어 화이트 볼가운으로, 부케와 대조되는 깨끗한 순백색 자수와 바닥까지 풍성하게 퍼지는 볼륨이 신부를 동화 속 주인공으로 만들어 줍니다.'
+  },
+  {
+    id: 'DR-042',
+    name: '임페리얼 크림슨 골드 수화복 꾸뛰르 (Imperial Crimson & Gold Silk Xiuhe Gown)',
+    designer: 'Forbidden City Imperial Archive & Kim Cheongdam (Seoul & Beijing)',
+    workshop: '쑤저우 웨딩공방 (Suzhou Craft)',
+    category: 'Traditional Fusion',
+    rentalPrice: 2650000,
+    deposit: 700000,
+    imageUrl: imperialCrimsonXiuheImg,
+    tag: '2부 피로연 & 전통 퓨전 / 임페리얼 크림슨 레드 & 골드',
+    status: '가용',
+    silhouette: '임페리얼 롱 스커트 수화복 (Xiuhe Dress)',
+    fabric: '진홍빛 실크 새틴, 순금사 궁중 용봉 자수, 레이어드 플리츠 스커트 헴',
+    rating: 5.0,
+    rentalCount: 18,
+    description: '젊은 동양인 신부가 고궁 뜰에서 착용한 강렬하고 화려한 진홍빛 전통 수화복 가운입니다. 정교한 황실 금사 자수와 바닥까지 완벽하게 떨어지는 전신 스커트 실루엣이 본식 2부 피로연과 예식 세러머니에서 독보적인 기품과 화려함을 선사합니다.'
+  },
+  {
+    id: 'DR-043',
+    name: '로열 바이올렛 사파이어 이브닝 머메이드 (Royal Violet Sapphire Evening Mermaid)',
+    designer: 'Chungdam Gala Atelier (Seoul)',
+    workshop: '상하이 1공방 (Shanghai Atelier)',
+    category: 'Mermaid',
+    rentalPrice: 2200000,
+    deposit: 600000,
+    imageUrl: royalVioletEveningImg,
+    tag: '피로연 & 갈라 이브닝 / 딥 로열 바이올렛 퍼플',
+    status: '가용',
+    silhouette: '슬림 피티드 머메이드',
+    fabric: '이탈리안 러스터 바이올렛 실크 태피터, 크리스털 보디스 비딩, 플로어 렝스 트레인',
+    rating: 4.9,
+    rentalCount: 16,
+    description: '젊은 동양 여성 모델의 우아한 바디라인과 딥 퍼플 바이올렛 컬러가 매혹적인 이브닝 머메이드 드레스입니다. 런웨이 무대 위 발끝까지 드라마틱하게 이어지는 전신 실루엣과 보디스의 은은한 광택감이 호텔 예식 애프터 파티에서 시선을 사로잡습니다.'
+  },
+  {
+    id: 'DR-044',
+    name: '비비드 푸시아 로즈 슬릿 꾸뛰르 가운 (Vivid Fuchsia Rose Slit Couture Gown)',
+    designer: 'Atelier Lumière (Hong Kong & Seoul)',
+    workshop: '광저우 정밀공방 (Guangzhou)',
+    category: 'A-Line',
+    rentalPrice: 2100000,
+    deposit: 550000,
+    imageUrl: vividFuchsiaCoutureImg,
+    tag: '생동감 넘치는 2부 드레스 / 비비드 푸시아 핑크',
+    status: '가용',
+    silhouette: '모던 슬릿 하이 에이라인',
+    fabric: '프리미엄 핫핑크 실크 크레이프, 보석 스톤 장식, 유려한 사이드 드레이프',
+    rating: 5.0,
+    rentalCount: 14,
+    description: '젊은 동양 여성 모델의 당당하고 세련된 매력을 극대화한 비비드 푸시아 핑크 컬러의 전신 꾸뛰르 가운입니다. 화사하고 생기 넘치는 마젠타 로즈 색채와 슬림하게 떨어지는 전신 라인이 밝고 경쾌한 2부 리셉션 분위기를 연출합니다.'
+  },
+  {
+    id: 'DR-045',
+    name: '미드나잇 사파이어 인디고 볼가운 (Midnight Sapphire Indigo Ball Gown)',
+    designer: 'Grace Kim Studio (Seoul)',
+    workshop: '상하이 1공방 (Shanghai Atelier)',
+    category: 'Ball Gown',
+    rentalPrice: 2400000,
+    deposit: 650000,
+    imageUrl: midnightSapphireEmpireImg,
+    tag: '나이트 웨딩 & 갈라 / 미드나잇 사파이어 네이비',
+    status: '가용',
+    silhouette: '글래머러스 이브닝 볼가운',
+    fabric: '미드나잇 블루 쉬머 튤, 다크 사파이어 실크 새틴, 은하수 글리터 비즈',
+    rating: 5.0,
+    rentalCount: 17,
+    description: '젊은 동양 여성 모델이 런웨이를 수놓은 깊고 그윽한 밤하늘 빛 미드나잇 사파이어 블루 볼가운입니다. 풍성하게 바닥까지 펼쳐지는 전신 스커트에 수놓인 은하수 글리터가 어두운 조명의 웅장한 호텔 웨딩홀과 이브닝 세러머니에 환상적인 무드를 완성합니다.'
+  },
+  {
+    id: 'DR-046',
+    name: '선셋 피치 코랄 플로잉 에이라인 (Sunset Peach Coral Flowing A-Line)',
+    designer: 'Min & Co. Haute Couture (Seoul & Tokyo)',
+    workshop: '쑤저우 웨딩공방 (Suzhou Craft)',
+    category: 'A-Line',
+    rentalPrice: 1950000,
+    deposit: 500000,
+    imageUrl: sunsetPeachCoralImg,
+    tag: '로맨틱 애프터 드레스 / 선셋 피치 코랄',
+    status: '가용',
+    silhouette: '소프트 플로잉 A라인',
+    fabric: '선셋 코랄 듀얼 톤 실크 시폰, 드레이프 오간자, 샴페인 골드 비딩',
+    rating: 4.9,
+    rentalCount: 15,
+    description: '젊은 동양 여성 모델이 착용한 노을빛의 따스하고 찬란한 선셋 피치 코랄 컬러 전신 드레스입니다. 걸을 때마다 부드럽게 살랑이는 실크 시폰 패브릭과 발끝까지 자연스럽게 퍼지는 A라인 헴라인이 사랑스러운 신부의 미소를 더욱 돋보이게 합니다.'
   }
 ];
 
